@@ -108,47 +108,11 @@ func (t GameTable) PutGameState(s game.GameState) error {
 	return nil
 }
 
-func (t GameTable) UpdateGameState(s game.GameState) error {
-	update := expression.Set(
-		expression.Name("players"),
-		expression.Value(s.Players),
-	)
-	update.Set(
-		expression.Name("hands"),
-		expression.Value(s.Hands),
-	)
-	update.Set(
-		expression.Name("discarded"),
-		expression.Value(s.Discarded),
-	)
-	update.Set(
-		expression.Name("widow"),
-		expression.Value(s.Widow),
-	)
-	update.Set(
-		expression.Name("table"),
-		expression.Value(s.Table),
-	)
-	update.Set(
-		expression.Name("currentPlayer"),
-		expression.Value(s.CurrentPlayer),
-	)
-	update.Set(
-		expression.Name("bid"),
-		expression.Value(s.Bid),
-	)
-	update.Set(
-		expression.Name("bidWinner"),
-		expression.Value(s.BidWinner),
-	)
-	update.Set(
-		expression.Name("bidding"),
-		expression.Value(s.Bidding),
-	)
-	update.Set(
-		expression.Name("trump"),
-		expression.Value(s.Trump),
-	)
+func (t GameTable) UpdateGameState(gameID string, updates map[string]interface{}) error {
+	update := expression.UpdateBuilder{}
+	for key, value := range updates {
+		update = update.Set(expression.Name(key), expression.Value(value))
+	}
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
 		return fmt.Errorf("Error when building update expression: %v", err)
@@ -158,7 +122,7 @@ func (t GameTable) UpdateGameState(s game.GameState) error {
 		&dynamodb.UpdateItemInput{
 			TableName: aws.String(GAME_TABLE_NAME),
 			Key: map[string]types.AttributeValue{
-				"GameID": &types.AttributeValueMemberS{Value: s.GameID},
+				"GameID": &types.AttributeValueMemberS{Value: gameID},
 			},
 			ExpressionAttributeNames:  expr.Names(),
 			ExpressionAttributeValues: expr.Values(),
