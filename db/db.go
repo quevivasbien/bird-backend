@@ -7,9 +7,13 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
+
+const BILLING_MODE = types.BillingModePayPerRequest
 
 func GetClient(region string) (*dynamodb.Client, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
@@ -19,10 +23,55 @@ func GetClient(region string) (*dynamodb.Client, error) {
 	return dynamodb.NewFromConfig(cfg), nil
 }
 
-func TableExists(client *dynamodb.Client, name string) (bool, error) {
-	_, err := client.DescribeTable(
+type Table interface {
+	Client() *dynamodb.Client
+	Name() string
+	IndexName() string
+	IndexType() types.ScalarAttributeType
+}
+
+// remove the table from dynamodb, useful for a complete reset
+func deleteTable(t Table) error {
+	_, err := t.Client().DeleteTable(
 		context.TODO(),
-		&dynamodb.DescribeTableInput{TableName: aws.String(name)},
+		&dynamodb.DeleteTableInput{
+			TableName: aws.String(t.Name()),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("Error when deleting game table: %v", err)
+	}
+	return nil
+}
+
+func initTable(t Table) error {
+	input := &dynamodb.CreateTableInput{
+		TableName: aws.String(t.Name()),
+		AttributeDefinitions: []types.AttributeDefinition{
+			{
+				AttributeName: aws.String(t.IndexName()),
+				AttributeType: t.IndexType(),
+			},
+		},
+		KeySchema: []types.KeySchemaElement{
+			{
+				AttributeName: aws.String(t.IndexName()),
+				KeyType:       types.KeyTypeHash,
+			},
+		},
+		BillingMode: BILLING_MODE,
+	}
+	_, err := t.Client().CreateTable(context.TODO(), input)
+	if err != nil {
+		return fmt.Errorf("Error when creating table %s: %v", t.Name(), err)
+	}
+	return nil
+}
+
+func tableIsInitialized(t Table) (bool, error) {
+	_, err := t.Client().DescribeTable(
+		context.TODO(),
+		&dynamodb.DescribeTableInput{TableName: aws.String(t.Name())},
 	)
 	if err != nil {
 		var notFound *types.ResourceNotFoundException
@@ -46,8 +95,66 @@ func (i ItemNotFound) Error() string {
 	}
 }
 
+func getItem(t Table, id string) (map[string]types.AttributeValue, error) {
+	input := &dynamodb.GetItemInput{
+		TableName: aws.String(t.Name()),
+		Key: map[string]types.AttributeValue{
+			t.IndexName(): &types.AttributeValueMemberS{Value: id},
+		},
+	}
+	output, err := t.Client().GetItem(context.TODO(), input)
+	if err != nil {
+		return nil, fmt.Errorf("Error when fetching item %s from table %s: %v", id, t.Name(), err)
+	}
+	return output.Item, nil
+}
+
+func putItem(t Table, item interface{}) error {
+	itemMap, err := attributevalue.MarshalMap(item)
+	if err != nil {
+		return fmt.Errorf("Error when packing item to be placed in table %s: %v", t.Name(), err)
+	}
+	_, err = t.Client().PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: aws.String(t.Name()),
+		Item:      itemMap,
+	})
+	if err != nil {
+		return fmt.Errorf("Error adding item to table %s: %v", t.Name(), err)
+	}
+	return nil
+}
+
+func updateItem(t Table, id string, updates map[string]interface{}) error {
+	update := expression.UpdateBuilder{}
+	for key, value := range updates {
+		update = update.Set(expression.Name(key), expression.Value(value))
+	}
+	expr, err := expression.NewBuilder().WithUpdate(update).Build()
+	if err != nil {
+		return fmt.Errorf("Error when building update expression: %v", err)
+	}
+	_, err = t.Client().UpdateItem(
+		context.TODO(),
+		&dynamodb.UpdateItemInput{
+			TableName: aws.String(t.Name()),
+			Key: map[string]types.AttributeValue{
+				t.IndexName(): &types.AttributeValueMemberS{Value: id},
+			},
+			ExpressionAttributeNames:  expr.Names(),
+			ExpressionAttributeValues: expr.Values(),
+			UpdateExpression:          expr.Update(),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("Error when updating item in %s on db: %v", t.Name(), err)
+	}
+	return nil
+}
+
 type Tables struct {
 	UserTable
+	LobbyTable
+	BidTable
 	GameTable
 }
 
@@ -60,6 +167,14 @@ func GetTables(region string) (Tables, error) {
 	tables.UserTable, err = MakeUserTable(client)
 	if err != nil {
 		return tables, fmt.Errorf("Error initializing user table: %v", err)
+	}
+	tables.LobbyTable, err = MakeLobbyTable(client)
+	if err != nil {
+		return tables, fmt.Errorf("Error initializing lobby table: %v", err)
+	}
+	tables.BidTable, err = MakeBidTable(client)
+	if err != nil {
+		return tables, fmt.Errorf("Error initializing bid table: %v", err)
 	}
 	tables.GameTable, err = MakeGameTable(client)
 	if err != nil {

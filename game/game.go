@@ -33,7 +33,8 @@ type GameState struct {
 	Table         []Card    `json:"table"`
 	CurrentPlayer int       `json:"currentPlayer"`
 	Trump         Color     `json:"trump"`
-	BidState      `json:"bidState"`
+	Bid           int       `json:"bid"`
+	BidWinner     int       `json:"bidWinner"`
 }
 
 // state of the game visible to a player during the game
@@ -42,7 +43,8 @@ type VisibleGameState struct {
 	Table         []Card `json:"table"`
 	CurrentPlayer int    `json:"currentPlayer"`
 	Trump         Color  `json:"trump"`
-	BidState      `json:"bidState"`
+	Bid           int    `json:"bid"`
+	BidWinner     int    `json:"bidWinner"`
 }
 
 func (g GameState) Visible(player int) VisibleGameState {
@@ -51,7 +53,8 @@ func (g GameState) Visible(player int) VisibleGameState {
 		Table:         g.Table,
 		CurrentPlayer: g.CurrentPlayer,
 		Trump:         g.Trump,
-		BidState:      g.BidState,
+		Bid:           g.Bid,
+		BidWinner:     g.BidWinner,
 	}
 }
 
@@ -89,10 +92,10 @@ func deal() ([4][]Card, [5]Card) {
 	return hands, widow
 }
 
-func InitializeGame(players [4]string) GameState {
+func InitializeGame(players [4]string) BidState {
 	gameID := getFreeGameID()
 	hands, widow := deal()
-	return GameState{
+	return BidState{
 		GameID:  gameID,
 		Players: players,
 		Hands:   hands,

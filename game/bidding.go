@@ -3,10 +3,14 @@ package game
 import "fmt"
 
 type BidState struct {
-	Done          bool    `json:"done"`
-	Passed        [4]bool `json:"passed"`
-	CurrentBidder int     `json:"currentBidder"`
-	Bid           int     `json:"bid"`
+	GameID        string    `json:"gameID"`
+	Done          bool      `json:"done"`
+	Players       [4]string `json:"players"`
+	Hands         [4][]Card `json:"hands"`
+	Widow         [5]Card   `json:"widow"`
+	Passed        [4]bool   `json:"passed"`
+	CurrentBidder int       `json:"currentBidder"`
+	Bid           int       `json:"bid"`
 }
 
 func (b BidState) Winner() int {
@@ -29,13 +33,13 @@ func (b *BidState) AdvanceBidder() {
 	b.Done = true
 }
 
-func (g GameState) ProcessBid(player string, amt int) error {
+func (b BidState) ProcessBid(player string, amt int) error {
 	// check that this is a valid bid
-	if g.BidState.Done {
+	if b.Done {
 		return fmt.Errorf("Tried to send a bid while the game is not in the bidding stage")
 	}
 	playerIndex := -1
-	for i, p := range g.Players {
+	for i, p := range b.Players {
 		if player == p {
 			playerIndex = i
 			break
@@ -44,22 +48,22 @@ func (g GameState) ProcessBid(player string, amt int) error {
 	if playerIndex == -1 {
 		return fmt.Errorf("Attempted to send a bid for a player who is not in this game")
 	}
-	if playerIndex != g.CurrentBidder {
+	if playerIndex != b.CurrentBidder {
 		return fmt.Errorf("It is not currently this player's turn to bid")
 	}
-	if g.Passed[playerIndex] {
+	if b.Passed[playerIndex] {
 		return fmt.Errorf("Bidder already passed")
 	}
 	if amt < 0 || amt > 200 {
 		return fmt.Errorf("Invalid bid amount")
 	}
 
-	if amt <= g.Bid {
-		g.Passed[playerIndex] = true
+	if amt <= b.Bid {
+		b.Passed[playerIndex] = true
 	} else {
-		g.Bid = amt
+		b.Bid = amt
 	}
-	g.AdvanceBidder()
+	b.AdvanceBidder()
 
 	return nil
 }

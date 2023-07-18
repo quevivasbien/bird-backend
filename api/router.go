@@ -26,17 +26,17 @@ func getLoginHandler(tables db.Tables) func(*fiber.Ctx) error {
 		// login is ok; send jwt token
 		err = SetTokenCookie(c, user)
 		if err != nil {
-			log.Println("When getting JWT at login")
+			log.Println("When getting JWT at login", err)
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
-		return c.SendStatus(fiber.StatusAccepted)
+		return c.SendStatus(fiber.StatusOK)
 	}
 }
 
 func getLogoutHandler(tables db.Tables) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-
-		return c.SendStatus(fiber.StatusAccepted)
+		ClearTokenCookie(c)
+		return c.SendStatus(fiber.StatusOK)
 	}
 }
 
@@ -73,13 +73,13 @@ func getCreateUserHandler(tables db.Tables) func(*fiber.Ctx) error {
 
 func getCreateGameHandler(tables db.Tables) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		return c.SendStatus(fiber.StatusAccepted)
+		return c.SendStatus(fiber.StatusOK)
 	}
 }
 
 func getSubscribeToLobbyHandler(tables db.Tables) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		return c.SendStatus(fiber.StatusAccepted)
+		return c.SendStatus(fiber.StatusOK)
 	}
 }
 

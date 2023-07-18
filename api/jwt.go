@@ -50,6 +50,16 @@ func SetTokenCookie(c *fiber.Ctx, user db.User) error {
 	return nil
 }
 
+func ClearTokenCookie(c *fiber.Ctx) {
+	c.Cookie(&fiber.Cookie{
+		Name:     JWT_COOKIE_NAME,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HTTPOnly: true,
+		Secure:   true,
+	})
+}
+
 func UnloadTokenCookie(c *fiber.Ctx) (JWTPayload, error) {
 	cookie := c.Cookies(JWT_COOKIE_NAME)
 	token, err := jwt.Parse(cookie, func(t *jwt.Token) (interface{}, error) {
