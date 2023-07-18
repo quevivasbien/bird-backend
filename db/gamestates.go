@@ -83,7 +83,7 @@ func (t GameTable) GetGameState(id string) (game.GameState, error) {
 		return game.GameState{}, fmt.Errorf("Error when fetching game state: %v", err)
 	}
 	if output.Item == nil {
-		return game.GameState{}, fmt.Errorf("No game found with ID %v", id)
+		return game.GameState{}, ItemNotFound{"Game"}
 	}
 	gameState := game.GameState{}
 	err = attributevalue.UnmarshalMap(output.Item, &gameState)

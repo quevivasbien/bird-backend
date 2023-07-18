@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -30,7 +29,7 @@ type UserTable struct {
 func MakeUserTable(client *dynamodb.Client) (UserTable, error) {
 	exists, err := TableExists(client, USER_TABLE_NAME)
 	if err != nil {
-		return UserTable{}, fmt.Errorf("Error when checking if game table exists: %v", err)
+		return UserTable{}, fmt.Errorf("Error when checking if user table exists: %v", err)
 	}
 	if exists {
 		return UserTable{client}, nil
@@ -89,7 +88,7 @@ func (t UserTable) GetUser(uname string) (User, error) {
 		return User{}, fmt.Errorf("Error when fetching user: %v", err)
 	}
 	if output.Item == nil {
-		return User{}, fmt.Errorf("No user found with name %v", uname)
+		return User{}, ItemNotFound{"User"}
 	}
 	user := User{}
 	err = attributevalue.UnmarshalMap(output.Item, &user)
@@ -145,8 +144,7 @@ func (t UserTable) UpdateUser(uname string, updates map[string]interface{}) erro
 func (t UserTable) ValidateUser(name string, password string) (bool, User, error) {
 	dbUser, err := t.GetUser(name)
 	if err != nil {
-		var notFound *types.ResourceNotFoundException
-		if errors.As(err, &notFound) {
+		if _, ok := err.(ItemNotFound); ok {
 			return false, User{}, nil
 		}
 		return false, User{}, err
@@ -159,4 +157,15 @@ func (t UserTable) ValidateUser(name string, password string) (bool, User, error
 		user = User{}
 	}
 	return ok, user, nil
+}
+
+func (t UserTable) UserExists(name string) (bool, error) {
+	_, err := t.GetUser(name)
+	if err != nil {
+		if _, ok := err.(ItemNotFound); ok {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

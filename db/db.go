@@ -34,6 +34,18 @@ func TableExists(client *dynamodb.Client, name string) (bool, error) {
 	return true, nil
 }
 
+type ItemNotFound struct {
+	ItemName string
+}
+
+func (i ItemNotFound) Error() string {
+	if i.ItemName == "" {
+		return "Item not found in database"
+	} else {
+		return fmt.Sprintf("%s not found in database", i.ItemName)
+	}
+}
+
 type Tables struct {
 	UserTable
 	GameTable
