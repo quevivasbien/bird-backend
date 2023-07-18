@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -31,4 +32,26 @@ func TableExists(client *dynamodb.Client, name string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+type Tables struct {
+	UserTable
+	GameTable
+}
+
+func GetTables(region string) (Tables, error) {
+	client, err := GetClient(region)
+	if err != nil {
+		return Tables{}, fmt.Errorf("Error getting database client: %v", err)
+	}
+	tables := Tables{}
+	tables.UserTable, err = MakeUserTable(client)
+	if err != nil {
+		return tables, fmt.Errorf("Error initializing user table: %v", err)
+	}
+	tables.GameTable, err = MakeGameTable(client)
+	if err != nil {
+		return tables, fmt.Errorf("Error initializing game table: %v", err)
+	}
+	return tables, nil
 }

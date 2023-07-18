@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,8 +13,9 @@ import (
 )
 
 type User struct {
-	Username string `json:"username"`
+	Name     string `json:"name"`
 	Password string `json:"password"`
+	Admin    bool   `json:"admin"`
 }
 
 const USER_TABLE_NAME = "BirdUsers"
@@ -25,15 +27,15 @@ type UserTable struct {
 // initialize a new GameTable struct with given client
 // if table already exists, use that table
 // otherwise, create the table
-func MakeUserTable(client *dynamodb.Client) (GameTable, error) {
+func MakeUserTable(client *dynamodb.Client) (UserTable, error) {
 	exists, err := TableExists(client, USER_TABLE_NAME)
 	if err != nil {
-		return GameTable{}, fmt.Errorf("Error when checking if game table exists: %v", err)
+		return UserTable{}, fmt.Errorf("Error when checking if game table exists: %v", err)
 	}
 	if exists {
-		return GameTable{client}, nil
+		return UserTable{client}, nil
 	} else {
-		return createGameTable(client)
+		return createUserTable(client)
 	}
 }
 
@@ -55,13 +57,13 @@ func createUserTable(client *dynamodb.Client) (UserTable, error) {
 	input := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
-				AttributeName: aws.String("Username"),
+				AttributeName: aws.String("Name"),
 				AttributeType: types.ScalarAttributeTypeS,
 			},
 		},
 		KeySchema: []types.KeySchemaElement{
 			{
-				AttributeName: aws.String("Username"),
+				AttributeName: aws.String("Name"),
 				KeyType:       types.KeyTypeHash,
 			},
 		},
@@ -78,7 +80,7 @@ func createUserTable(client *dynamodb.Client) (UserTable, error) {
 func (t UserTable) GetUser(uname string) (User, error) {
 	input := &dynamodb.GetItemInput{
 		Key: map[string]types.AttributeValue{
-			"Username": &types.AttributeValueMemberS{Value: uname},
+			"Name": &types.AttributeValueMemberS{Value: uname},
 		},
 		TableName: aws.String(USER_TABLE_NAME),
 	}
@@ -126,7 +128,7 @@ func (t UserTable) UpdateUser(uname string, updates map[string]interface{}) erro
 		&dynamodb.UpdateItemInput{
 			TableName: aws.String(USER_TABLE_NAME),
 			Key: map[string]types.AttributeValue{
-				"Username": &types.AttributeValueMemberS{Value: uname},
+				"Name": &types.AttributeValueMemberS{Value: uname},
 			},
 			ExpressionAttributeNames:  expr.Names(),
 			ExpressionAttributeValues: expr.Values(),
@@ -137,4 +139,24 @@ func (t UserTable) UpdateUser(uname string, updates map[string]interface{}) erro
 		return fmt.Errorf("Error when updating user in db: %v", err)
 	}
 	return nil
+}
+
+// check that user exists and has correct password
+func (t UserTable) ValidateUser(name string, password string) (bool, User, error) {
+	dbUser, err := t.GetUser(name)
+	if err != nil {
+		var notFound *types.ResourceNotFoundException
+		if errors.As(err, &notFound) {
+			return false, User{}, nil
+		}
+		return false, User{}, err
+	}
+	ok := dbUser.Password == password
+	var user User
+	if ok {
+		user = dbUser
+	} else {
+		user = User{}
+	}
+	return ok, user, nil
 }
