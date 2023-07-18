@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/quevivasbien/bird-backend/db"
+	"github.com/quevivasbien/bird-backend/game"
 )
 
 func main() {
@@ -17,22 +18,20 @@ func main() {
 		panic(fmt.Sprintf("Error when getting game table: %v", err))
 	}
 
-	// gameState := game.GameState{
-	// 	GameID: "TestGame",
-	// }
-	// err = gameTable.PutGameState(gameState)
-	// if err != nil {
-	// 	panic(fmt.Sprintf("Error when putting game state in db: %v", err))
-	// }
-
-	updates := make(map[string]interface{})
-	updates["Bid"] = 200
-	err = gameTable.UpdateGameState("TestGame", updates)
+	gameState := game.InitializeGame([4]string{"bob", "jim", "tom", "will"})
+	err = gameTable.PutGameState(gameState)
 	if err != nil {
-		panic(fmt.Sprintf("Error when updating game state on db: %v", err))
+		panic(fmt.Sprintf("Error when putting game state in db: %v", err))
 	}
 
-	response, err := gameTable.GetGameState("TestGame")
+	// updates := make(map[string]interface{})
+	// updates["Bid"] = 200
+	// err = gameTable.UpdateGameState("TestGame", updates)
+	// if err != nil {
+	// 	panic(fmt.Sprintf("Error when updating game state on db: %v", err))
+	// }
+
+	response, err := gameTable.GetGameState(gameState.GameID)
 	if err != nil {
 		panic(fmt.Sprintf("Error when retrieving game state from db: %v", err))
 	}
