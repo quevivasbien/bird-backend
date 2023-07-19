@@ -58,7 +58,7 @@ func (g GameState) Visible(player int) VisibleGameState {
 	}
 }
 
-func getFreeGameID() string {
+func GetFreeGameID() string {
 	// todo: check for duplicates?
 	rand.Seed(time.Now().UnixNano())
 	b := make([]byte, GAME_ID_LENGTH+2)
@@ -92,11 +92,10 @@ func deal() ([4][]Card, [5]Card) {
 	return hands, widow
 }
 
-func InitializeGame(players [4]string) BidState {
-	gameID := getFreeGameID()
+func InitializeGame(id string, players [4]string) BidState {
 	hands, widow := deal()
 	return BidState{
-		GameID:  gameID,
+		GameID:  id,
 		Players: players,
 		Hands:   hands,
 		Widow:   widow,

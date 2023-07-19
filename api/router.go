@@ -5,7 +5,9 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/quevivasbien/bird-backend/db"
+	"github.com/quevivasbien/bird-backend/game"
 )
 
 func getLoginHandler(tables db.Tables) func(*fiber.Ctx) error {
@@ -73,6 +75,20 @@ func getCreateUserHandler(tables db.Tables) func(*fiber.Ctx) error {
 
 func getCreateGameHandler(tables db.Tables) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+		authInfo, err := UnloadTokenCookie(c)
+		if err != nil || authInfo.Name == "" {
+			return c.SendStatus(fiber.StatusUnauthorized)
+		}
+		lobby := db.Lobby{
+			ID:      game.GetFreeGameID(),
+			Host:    authInfo.Name,
+			Players: [4]string{authInfo.Name},
+		}
+		err = tables.PutLobby(lobby)
+		if err != nil {
+			log.Println("When putting new lobby in db:", err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
 		return c.SendStatus(fiber.StatusOK)
 	}
 }
@@ -85,6 +101,14 @@ func getSubscribeToLobbyHandler(tables db.Tables) func(*fiber.Ctx) error {
 
 func InitApp(region string) (*fiber.App, error) {
 	app := fiber.New()
+	app.Use(
+		cors.New(cors.Config{
+			AllowOrigins:     "*",
+			AllowHeaders:     "",
+			AllowCredentials: true,
+		}),
+	)
+
 	tables, err := db.GetTables("us-east-1")
 	if err != nil {
 		return app, fmt.Errorf("Error intializing tables: %v", err)
@@ -92,7 +116,9 @@ func InitApp(region string) (*fiber.App, error) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Bird backend")
 	})
-	app.Get("/login", getLoginHandler(tables))
+	loginHandler := getLoginHandler(tables)
+	app.Get("/login", loginHandler)
+	app.Post("/login", loginHandler)
 	app.Post("/logout", getLogoutHandler(tables))
 	app.Post("/register", getCreateUserHandler(tables))
 	app.Post("/games/create", getCreateGameHandler(tables))
