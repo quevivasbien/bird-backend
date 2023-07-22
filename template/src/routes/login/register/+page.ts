@@ -2,7 +2,7 @@ import { base } from "$app/paths";
 import type { LoadEvent } from "@sveltejs/kit";
 
 export function load(event: LoadEvent) {
-    const login = async (name: string, password: string) => {
+    const register = async (name: string, password: string) => {
         const response = await event.fetch(
             base + "api/login",
             {
@@ -19,8 +19,7 @@ export function load(event: LoadEvent) {
         console.log(response);
         return [response.ok, response.status];
     }
-    
     return {
-        login,
+        register,
     };
 }

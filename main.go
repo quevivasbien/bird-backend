@@ -7,12 +7,12 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/quevivasbien/bird-backend/api"
-	"github.com/quevivasbien/bird-backend/template"
+	"github.com/quevivasbien/bird-game/api"
+	"github.com/quevivasbien/bird-game/template"
 )
 
 const AWS_REGION = "us-east-1"
-const PORT = ":8081"
+const PORT = ":3000"
 
 func main() {
 	app := fiber.New()

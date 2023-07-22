@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/quevivasbien/bird-backend/db"
+	"github.com/quevivasbien/bird-game/db"
 )
 
 var JWT_SECRET = []byte(os.Getenv("BIRD_JWT_SECRET"))

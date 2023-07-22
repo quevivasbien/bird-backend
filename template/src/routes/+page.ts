@@ -1,17 +1,23 @@
 import { base } from "$app/paths";
+import { lobbyStore } from "$lib/stores";
 import type { LoadEvent } from "@sveltejs/kit";
 
 export function load(event: LoadEvent) {
-    const testAuth = async () => {
+    const createGame = async () => {
         const response = await event.fetch(
-            base + "/api/login/testAuth",
+            base + "/api/games/create",
+            {
+                method: "POST",
+            }
         );
         console.log(response);
-        const text = await response.text();
-        console.log(text);
-        return text;
-    }
+        if (response.ok) {
+            const lobbyInfo = await response.json();
+            lobbyStore.set(lobbyInfo);
+        }
+        return [response.ok, response.status]; 
+    };
     return {
-        testAuth,
+        createGame,
     }
 }

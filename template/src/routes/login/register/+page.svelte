@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { userStore } from '$lib/stores';
 
 	export let data;
 
-	const { login } = data;
+	const { register } = data;
 
 	let name: string = '';
 	let password: string = '';
+	let passwordVerify: string = '';
 
 	let statusText: string = '';
 
@@ -16,14 +16,17 @@
 		if (!name || !password) {
 			return;
 		}
-		const [ok, status] = await login(name, password);
-		if (ok) {
-			$userStore = { name };
-			goto(base + '/');
+		if (password !== passwordVerify) {
+			statusText = 'Passwords do not match';
 			return;
 		}
-		if (status === 401) {
-			statusText = 'Invalid username and/or password';
+		const [ok, status] = await register(name, password);
+		if (ok) {
+			goto(base + '/login');
+			return;
+		}
+		if (status === 409) {
+			statusText = 'Username is already taken';
 			return;
 		}
 		statusText = 'Something went wrong';
@@ -39,12 +42,12 @@
 		<div>Password</div>
 		<input type="password" bind:value={password} />
 	</label>
-	<button type="submit">Login</button>
+	<label>
+		<div>Verify password</div>
+		<input type="password" bind:value={passwordVerify} />
+	</label>
+	<button type="submit">Register</button>
 </form>
 {#if statusText}
 	<div>{statusText}</div>
 {/if}
-
-<div>
-	New? <a href={base + '/login/register'}>Register an account</a>
-</div>

@@ -21,7 +21,7 @@ export function load(event: LoadEvent) {
         if (response.ok) {
             userStore.set(undefined);
         }
-        return response.status;
+        return [response.ok, response.status];
     }
 
     return {

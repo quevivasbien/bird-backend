@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/quevivasbien/bird-backend/db"
-	"github.com/quevivasbien/bird-backend/game"
+	"github.com/quevivasbien/bird-game/db"
+	"github.com/quevivasbien/bird-game/game"
 )
 
 func getLoginHandler(tables db.Tables) func(*fiber.Ctx) error {
@@ -88,7 +88,7 @@ func getCreateGameHandler(tables db.Tables) func(*fiber.Ctx) error {
 			log.Println("When putting new lobby in db:", err)
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
-		return c.SendStatus(fiber.StatusOK)
+		return c.JSON(lobby)
 	}
 }
 
@@ -99,17 +99,6 @@ func getSubscribeToLobbyHandler(tables db.Tables) func(*fiber.Ctx) error {
 }
 
 func InitApi(r fiber.Router, region string) error {
-	// app := fiber.New()
-	// app.Use(
-	// 	cors.New(cors.Config{
-	// 		AllowOriginsFunc: func(origin string) bool {
-	// 			return true
-	// 		},
-	// 		AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
-	// 		AllowCredentials: true,
-	// 	}),
-	// )
-
 	tables, err := db.GetTables("us-east-1")
 	if err != nil {
 		return fmt.Errorf("Error intializing tables: %v", err)

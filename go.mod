@@ -1,4 +1,4 @@
-module github.com/quevivasbien/bird-backend
+module github.com/quevivasbien/bird-game
 
 go 1.20
 
