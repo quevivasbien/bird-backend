@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/quevivasbien/bird-backend/db"
 	"github.com/quevivasbien/bird-backend/game"
 )
@@ -99,29 +98,39 @@ func getSubscribeToLobbyHandler(tables db.Tables) func(*fiber.Ctx) error {
 	}
 }
 
-func InitApp(region string) (*fiber.App, error) {
-	app := fiber.New()
-	app.Use(
-		cors.New(cors.Config{
-			AllowOrigins:     "*",
-			AllowHeaders:     "",
-			AllowCredentials: true,
-		}),
-	)
+func InitApi(r fiber.Router, region string) error {
+	// app := fiber.New()
+	// app.Use(
+	// 	cors.New(cors.Config{
+	// 		AllowOriginsFunc: func(origin string) bool {
+	// 			return true
+	// 		},
+	// 		AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	// 		AllowCredentials: true,
+	// 	}),
+	// )
 
 	tables, err := db.GetTables("us-east-1")
 	if err != nil {
-		return app, fmt.Errorf("Error intializing tables: %v", err)
+		return fmt.Errorf("Error intializing tables: %v", err)
 	}
-	app.Get("/", func(c *fiber.Ctx) error {
+	r.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Bird backend")
 	})
 	loginHandler := getLoginHandler(tables)
-	app.Get("/login", loginHandler)
-	app.Post("/login", loginHandler)
-	app.Post("/logout", getLogoutHandler(tables))
-	app.Post("/register", getCreateUserHandler(tables))
-	app.Post("/games/create", getCreateGameHandler(tables))
-	app.Get("/games/lobbies/:lobby", getSubscribeToLobbyHandler(tables))
-	return app, nil
+	r.Post("/login", loginHandler)
+	r.Post("/logout", getLogoutHandler(tables))
+	r.Post("/register", getCreateUserHandler(tables))
+	r.Post("/games/create", getCreateGameHandler(tables))
+	r.Get("/games/lobbies/:lobby", getSubscribeToLobbyHandler(tables))
+
+	r.Get("/login/testAuth", func(c *fiber.Ctx) error {
+		authInfo, err := UnloadTokenCookie(c)
+		if err != nil {
+			return c.SendString(fmt.Sprintf("Got error when unloading cookie: %v", err))
+		}
+		return c.SendString(fmt.Sprintf("Authinfo %v", authInfo))
+	})
+
+	return nil
 }

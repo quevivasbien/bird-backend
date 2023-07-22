@@ -3,23 +3,45 @@ package main
 import (
 	"fmt"
 
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/quevivasbien/bird-backend/api"
-	"github.com/quevivasbien/bird-backend/db"
+	"github.com/quevivasbien/bird-backend/template"
 )
 
 const AWS_REGION = "us-east-1"
+const PORT = ":8081"
 
 func main() {
-	tables, _ := db.GetTables(AWS_REGION)
-	tables.PutUser(db.User{
-		Name:     "admin",
-		Password: "admin",
-		Admin:    true,
-	})
+	app := fiber.New()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "*",
+		AllowHeaders:     "*",
+		AllowCredentials: true,
+	}))
+	app.Use(logger.New(logger.Config{
+		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
+	}))
 
-	app, err := api.InitApp(AWS_REGION)
+	apiRouter := app.Group("/api")
+	err := api.InitApi(apiRouter, AWS_REGION)
+	// app, err := api.InitApp(AWS_REGION)
 	if err != nil {
 		panic(fmt.Sprintf("Error initializing app: %v", err))
 	}
-	app.Listen(":8081")
+
+	app.All(
+		"/*",
+		filesystem.New(filesystem.Config{
+			Root:         template.GetBuild(),
+			NotFoundFile: "index.html",
+			Index:        "index.html",
+		}),
+	)
+
+	if err := app.Listen(PORT); err != nil {
+		panic(err)
+	}
 }
