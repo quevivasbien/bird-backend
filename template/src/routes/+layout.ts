@@ -12,7 +12,7 @@ export function load(event: LoadEvent) {
             return;
         }
         const response = await event.fetch(
-            base + "/api/logout",
+            base + "/api/auth/logout",
             {
                 method: "POST",
             },
@@ -22,9 +22,33 @@ export function load(event: LoadEvent) {
             userStore.set(undefined);
         }
         return [response.ok, response.status];
+    };
+
+    // if a jwt cookie is present, use it to get info for userStore
+    const syncAuth = async () => {
+        const response = await event.fetch(
+            base + "/api/auth/status",
+            {
+                method: "GET",
+            },
+        );
+        console.log(response);
+        if (!response.ok) {
+            console.log("Problem when attempting to fetch user info:", response.statusText);
+            return;
+        }
+        const userInfo = await response.json();
+        console.log(userInfo);
+        // if userInfo is unexpired, use it
+        if (Date.now() / 1000 < userInfo.expireTime) {
+            return userInfo;
+        }
     }
+   
+
 
     return {
         logout,
-    }
+        syncAuth,
+    };
 }

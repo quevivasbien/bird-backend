@@ -16,9 +16,9 @@ const JWT_EXPIRE_HOURS = 12
 const JWT_COOKIE_NAME = "jwt_token"
 
 type JWTPayload struct {
-	Name       string
-	Admin      bool
-	ExpireTime int64
+	Name       string `json:"name"`
+	Admin      bool   `json:"admin"`
+	ExpireTime int64  `json:"expireTime"`
 }
 
 type MissingToken struct{}
@@ -41,10 +41,10 @@ func getToken(user db.User) (string, time.Time, error) {
 	return token, expireTime, err
 }
 
-func SetTokenCookie(c *fiber.Ctx, user db.User) error {
+func SetTokenCookie(c *fiber.Ctx, user db.User) (JWTPayload, error) {
 	jwt, expireTime, err := getToken(user)
 	if err != nil {
-		return err
+		return JWTPayload{}, err
 	}
 	c.Cookie(&fiber.Cookie{
 		Name:     JWT_COOKIE_NAME,
@@ -54,7 +54,11 @@ func SetTokenCookie(c *fiber.Ctx, user db.User) error {
 		Secure:   true,
 		Path:     "/",
 	})
-	return nil
+	return JWTPayload{
+		Name:       user.Name,
+		Admin:      user.Admin,
+		ExpireTime: expireTime.Unix(),
+	}, nil
 }
 
 func ClearTokenCookie(c *fiber.Ctx) {

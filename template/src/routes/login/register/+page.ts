@@ -4,7 +4,7 @@ import type { LoadEvent } from "@sveltejs/kit";
 export function load(event: LoadEvent) {
     const register = async (name: string, password: string) => {
         const response = await event.fetch(
-            base + "api/login",
+            base + "api/auth/register",
             {
                 method: "POST",
                 headers: {

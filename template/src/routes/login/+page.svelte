@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { userStore } from '$lib/stores';
 
 	export let data;
 
@@ -18,7 +17,6 @@
 		}
 		const [ok, status] = await login(name, password);
 		if (ok) {
-			$userStore = { name };
 			goto(base + '/');
 			return;
 		}

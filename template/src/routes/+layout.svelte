@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { userStore } from '$lib/stores';
+	import { onMount } from 'svelte';
 
 	export let data;
 
-	const { logout } = data;
+	const { logout, syncAuth } = data;
+
+	onMount(() => {
+		if ($userStore === undefined) {
+			syncAuth().then((v) => $userStore = v);
+		}
+	});
 </script>
 
 <svelte:head>

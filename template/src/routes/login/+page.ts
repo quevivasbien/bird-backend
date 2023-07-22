@@ -1,10 +1,11 @@
 import { base } from "$app/paths";
+import { userStore } from "$lib/stores";
 import type { LoadEvent } from "@sveltejs/kit";
 
 export function load(event: LoadEvent) {
     const login = async (name: string, password: string) => {
         const response = await event.fetch(
-            base + "api/login",
+            base + "api/auth/login",
             {
                 method: "POST",
                 headers: {
@@ -17,6 +18,10 @@ export function load(event: LoadEvent) {
             }
         );
         console.log(response);
+        if (response.ok) {
+            const userInfo = await response.json();
+            userStore.set(userInfo);
+        }
         return [response.ok, response.status];
     }
     

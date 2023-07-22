@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/quevivasbien/bird-game/api"
+	"github.com/quevivasbien/bird-game/db"
 	"github.com/quevivasbien/bird-game/template"
 )
 
@@ -25,11 +26,13 @@ func main() {
 		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
 	}))
 
-	apiRouter := app.Group("/api")
-	err := api.InitApi(apiRouter, AWS_REGION)
-	// app, err := api.InitApp(AWS_REGION)
+	tables, err := db.GetTables(AWS_REGION)
 	if err != nil {
-		panic(fmt.Sprintf("Error initializing app: %v", err))
+		panic(fmt.Sprintf("Error initializing database tables: %v", err))
+	}
+	err = api.InitApi(app.Group("/api"), tables)
+	if err != nil {
+		panic(fmt.Sprintf("Error initializing API router: %v", err))
 	}
 
 	app.All(
