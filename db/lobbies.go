@@ -50,20 +50,24 @@ func MakeLobbyTable(client *dynamodb.Client) (LobbyTable, error) {
 	}
 }
 
+func LobbyFromItemMap(m map[string]types.AttributeValue) (Lobby, error) {
+	if m == nil {
+		return Lobby{}, ItemNotFound{"Lobby"}
+	}
+	lobby := Lobby{}
+	err := attributevalue.UnmarshalMap(m, &lobby)
+	if err != nil {
+		return lobby, fmt.Errorf("Error when unpacking lobby: %v", err)
+	}
+	return lobby, nil
+}
+
 func (t LobbyTable) GetLobby(id string) (Lobby, error) {
 	itemMap, err := getItem(t, id)
 	if err != nil {
 		return Lobby{}, err
 	}
-	if itemMap == nil {
-		return Lobby{}, ItemNotFound{"Lobby"}
-	}
-	lobby := Lobby{}
-	err = attributevalue.UnmarshalMap(itemMap, &lobby)
-	if err != nil {
-		return lobby, fmt.Errorf("Error when unpacking lobby: %v", err)
-	}
-	return lobby, nil
+	return LobbyFromItemMap(itemMap)
 }
 
 func (t LobbyTable) PutLobby(l Lobby) error {

@@ -2,47 +2,27 @@ package api
 
 import (
 	"fmt"
-	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/db"
-	"github.com/quevivasbien/bird-game/game"
 )
 
+const CACHE_UPDATE_INTVL time.Duration = time.Millisecond * 500
+const CACHE_FLUSH_INTVL time.Duration = time.Second * 30
+
 var tables *db.Tables
-
-func createGameHandler(c *fiber.Ctx) error {
-	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-	lobby := db.Lobby{
-		ID:      game.GetFreeGameID(),
-		Host:    authInfo.Name,
-		Players: [4]string{authInfo.Name},
-	}
-	err = tables.PutLobby(lobby)
-	if err != nil {
-		log.Println("When putting new lobby in db:", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-	return c.JSON(lobby)
-}
-
-func subscribeToLobbyHandler(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusOK)
-}
+var dbCache *db.Cache
 
 func InitApi(r fiber.Router, t db.Tables) error {
 	tables = &t
+	dbCache = db.NewCache(CACHE_UPDATE_INTVL, CACHE_FLUSH_INTVL)
 	r.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Bird backend")
 	})
 
 	setupAuth(r.Group("/auth"))
-
-	r.Post("/games/create", createGameHandler)
-	r.Get("/games/lobbies/:lobby", subscribeToLobbyHandler)
+	setupLobbies(r.Group("/lobbies"))
 
 	r.Get("/login/testAuth", func(c *fiber.Ctx) error {
 		authInfo, err := UnloadTokenCookie(c)

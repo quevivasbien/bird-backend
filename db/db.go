@@ -152,6 +152,7 @@ func updateItem(t Table, id string, updates map[string]interface{}) error {
 }
 
 type Tables struct {
+	Region string
 	UserTable
 	LobbyTable
 	BidTable
@@ -163,7 +164,7 @@ func GetTables(region string) (Tables, error) {
 	if err != nil {
 		return Tables{}, fmt.Errorf("Error getting database client: %v", err)
 	}
-	tables := Tables{}
+	tables := Tables{Region: region}
 	tables.UserTable, err = MakeUserTable(client)
 	if err != nil {
 		return tables, fmt.Errorf("Error initializing user table: %v", err)
@@ -181,4 +182,29 @@ func GetTables(region string) (Tables, error) {
 		return tables, fmt.Errorf("Error initializing game table: %v", err)
 	}
 	return tables, nil
+}
+
+// delete and re-initialize all tables
+func (t *Tables) Reset() error {
+	err := deleteTable(t.BidTable)
+	if err != nil {
+		return fmt.Errorf("Problem deleting bid table: %v", err)
+	}
+	err = deleteTable(t.GameTable)
+	if err != nil {
+		return fmt.Errorf("Problem deleting game table: %v", err)
+	}
+	err = deleteTable(t.LobbyTable)
+	if err != nil {
+		return fmt.Errorf("Problem deleting lobby table: %v", err)
+	}
+	err = deleteTable(t.UserTable)
+	if err != nil {
+		return fmt.Errorf("Problem deleting user table: %v", err)
+	}
+	*t, err = GetTables(t.Region)
+	if err != nil {
+		return fmt.Errorf("Problem re-initializing tables: %v", err)
+	}
+	return nil
 }

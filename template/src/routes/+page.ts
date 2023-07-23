@@ -3,11 +3,11 @@ import { lobbyStore } from "$lib/stores";
 import type { LoadEvent } from "@sveltejs/kit";
 
 export function load(event: LoadEvent) {
-    const createGame = async () => {
+    const createLobby = async (id: string) => {
         const response = await event.fetch(
-            base + "/api/games/create",
+            base + "/api/lobbies/" + id,
             {
-                method: "POST",
+                method: "PUT",
             }
         );
         console.log(response);
@@ -17,7 +17,24 @@ export function load(event: LoadEvent) {
         }
         return [response.ok, response.status]; 
     };
+
+    const joinLobby = async (id: string) => {
+        const response = await event.fetch(
+            base + "/api/lobbies/" + id + "/join",
+            {
+                method: "POST",
+            }
+        );
+        console.log(response);
+        if (response.ok) {
+            const lobbyInfo = await response.json();
+            lobbyStore.set(lobbyInfo);
+        }
+        return [response.ok, response.status];
+    };
+
     return {
-        createGame,
+        createLobby,
+        joinLobby,
     }
 }

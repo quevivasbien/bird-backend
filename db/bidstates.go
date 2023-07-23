@@ -45,26 +45,30 @@ func MakeBidTable(client *dynamodb.Client) (BidTable, error) {
 	}
 }
 
-func (t BidTable) GetBidState(id string) (game.BidState, error) {
-	itemMap, err := getItem(t, id)
-	if err != nil {
-		return game.BidState{}, err
-	}
-	if itemMap == nil {
+func BidStateFromItemMap(m map[string]types.AttributeValue) (game.BidState, error) {
+	if m == nil {
 		return game.BidState{}, ItemNotFound{"BidState"}
 	}
 	lobby := game.BidState{}
-	err = attributevalue.UnmarshalMap(itemMap, &lobby)
+	err := attributevalue.UnmarshalMap(m, &lobby)
 	if err != nil {
 		return lobby, fmt.Errorf("Error when unpacking lobby: %v", err)
 	}
 	return lobby, nil
 }
 
+func (t BidTable) GetBidState(id string) (game.BidState, error) {
+	itemMap, err := getItem(t, id)
+	if err != nil {
+		return game.BidState{}, err
+	}
+	return BidStateFromItemMap(itemMap)
+}
+
 func (t BidTable) PutBidState(b game.BidState) error {
 	return putItem(t, b)
 }
 
-func (t BidTable) UpdateLobby(id string, updates map[string]interface{}) error {
+func (t BidTable) UpdateBidState(id string, updates map[string]interface{}) error {
 	return updateItem(t, id, updates)
 }
