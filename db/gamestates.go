@@ -48,20 +48,25 @@ func MakeGameTable(client *dynamodb.Client) (GameTable, error) {
 	}
 }
 
+func GameStateFromItemMap(m map[string]types.AttributeValue) (game.GameState, error) {
+	if m == nil {
+		return game.GameState{}, ItemNotFound{"Game"}
+	}
+	gameState := game.GameState{}
+	err := attributevalue.UnmarshalMap(m, &gameState)
+	if err != nil {
+		return gameState, fmt.Errorf("Error when unpacking game state: %v", err)
+	}
+	return gameState, nil
+
+}
+
 func (t GameTable) GetGameState(id string) (game.GameState, error) {
 	itemMap, err := getItem(t, id)
 	if err != nil {
 		return game.GameState{}, err
 	}
-	if itemMap == nil {
-		return game.GameState{}, ItemNotFound{"Game"}
-	}
-	gameState := game.GameState{}
-	err = attributevalue.UnmarshalMap(itemMap, &gameState)
-	if err != nil {
-		return gameState, fmt.Errorf("Error when unpacking game state: %v", err)
-	}
-	return gameState, nil
+	return GameStateFromItemMap(itemMap)
 }
 
 func (t GameTable) PutGameState(s game.GameState) error {

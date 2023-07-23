@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/db"
 	"github.com/quevivasbien/bird-game/game"
@@ -45,8 +44,7 @@ func getLobbyState(c *fiber.Ctx) error {
 		log.Println("When getting lobby state from cache", err)
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
-	lobby := db.Lobby{}
-	err = attributevalue.UnmarshalMap(lobbyMap, lobby)
+	lobby, err := db.LobbyFromItemMap(lobbyMap)
 	if err != nil {
 		log.Println("When unmarshalling cached lobby state", err)
 		return c.SendStatus(fiber.StatusInternalServerError)

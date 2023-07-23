@@ -67,7 +67,11 @@ func (c *Cache) cycleFlush() {
 }
 
 func MakeCache(updateInterval time.Duration, flushPeriod time.Duration) Cache {
-	cache := Cache{updateInterval: updateInterval, flushPeriod: flushPeriod}
+	cache := Cache{
+		items:          make(map[string]CacheItem),
+		updateInterval: updateInterval,
+		flushPeriod:    flushPeriod,
+	}
 	go cache.cycleFlush()
 	return cache
 }
