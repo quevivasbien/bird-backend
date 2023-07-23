@@ -3,13 +3,19 @@ package api
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/db"
 	"github.com/quevivasbien/bird-game/game"
 )
 
+const CACHE_UPDATE_INTVL time.Duration = time.Millisecond * 500
+const CACHE_FLUSH_INTVL time.Duration = time.Millisecond * 500
+
 var tables *db.Tables
+var dbCache = db.MakeCache(CACHE_UPDATE_INTVL, CACHE_FLUSH_INTVL)
 
 func createGameHandler(c *fiber.Ctx) error {
 	authInfo, err := UnloadTokenCookie(c)
@@ -29,8 +35,23 @@ func createGameHandler(c *fiber.Ctx) error {
 	return c.JSON(lobby)
 }
 
-func subscribeToLobbyHandler(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusOK)
+func getLobbyState(c *fiber.Ctx) error {
+	authInfo, err := UnloadTokenCookie(c)
+	if err != nil || authInfo.Name == "" {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	lobbyMap, err := dbCache.Get(tables.LobbyTable, c.Params("lobby"))
+	if err != nil {
+		log.Println("When getting lobby state from cache", err)
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+	lobby := db.Lobby{}
+	err = attributevalue.UnmarshalMap(lobbyMap, lobby)
+	if err != nil {
+		log.Println("When unmarshalling cached lobby state", err)
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+	return c.JSON(lobby)
 }
 
 func InitApi(r fiber.Router, t db.Tables) error {
@@ -42,7 +63,7 @@ func InitApi(r fiber.Router, t db.Tables) error {
 	setupAuth(r.Group("/auth"))
 
 	r.Post("/games/create", createGameHandler)
-	r.Get("/games/lobbies/:lobby", subscribeToLobbyHandler)
+	r.Get("/lobbies/:lobby", getLobbyState)
 
 	r.Get("/login/testAuth", func(c *fiber.Ctx) error {
 		authInfo, err := UnloadTokenCookie(c)
