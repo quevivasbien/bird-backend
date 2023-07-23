@@ -11,7 +11,7 @@ import (
 )
 
 const CACHE_UPDATE_INTVL time.Duration = time.Millisecond * 500
-const CACHE_FLUSH_INTVL time.Duration = time.Millisecond * 500
+const CACHE_FLUSH_INTVL time.Duration = time.Second * 30
 
 var tables *db.Tables
 var dbCache = db.MakeCache(CACHE_UPDATE_INTVL, CACHE_FLUSH_INTVL)
