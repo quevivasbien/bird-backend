@@ -66,14 +66,14 @@ func (c *Cache) cycleFlush() {
 	}
 }
 
-func MakeCache(updateInterval time.Duration, flushPeriod time.Duration) Cache {
+func NewCache(updateInterval time.Duration, flushPeriod time.Duration) *Cache {
 	cache := Cache{
 		items:          make(map[string]CacheItem),
 		updateInterval: updateInterval,
 		flushPeriod:    flushPeriod,
 	}
 	go cache.cycleFlush()
-	return cache
+	return &cache
 }
 
 func (c *Cache) Get(table Table, itemName string) (map[string]types.AttributeValue, error) {

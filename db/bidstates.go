@@ -69,6 +69,6 @@ func (t BidTable) PutBidState(b game.BidState) error {
 	return putItem(t, b)
 }
 
-func (t BidTable) UpdateLobby(id string, updates map[string]interface{}) error {
+func (t BidTable) UpdateBidState(id string, updates map[string]interface{}) error {
 	return updateItem(t, id, updates)
 }

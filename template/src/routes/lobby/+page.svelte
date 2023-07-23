@@ -1,22 +1,42 @@
 <script lang="ts">
 	import { lobbyStore } from '$lib/stores';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 
-    const UPDATE_INTVL = 500;
+	const UPDATE_INTVL = 1000;
 
-    export let data;
+	export let data;
 
-    const { getLobbyState } = data;
+	const { getLobbyState, leaveLobby } = data;
 
-    let t: string | undefined = "";
+    let interval: number;
 
-    onMount(async () => {
-        t = await getLobbyState();
-        // setInterval(
-        //     async () => t = await getLobbyState(),
-        //     UPDATE_INTVL,
-        // );
-    });
+	onMount(async () => {
+		$lobbyStore = await getLobbyState();
+		interval = setInterval(async () => ($lobbyStore = await getLobbyState()), UPDATE_INTVL);
+	});
+
+	onDestroy(async () => {
+        console.log("lobby ondestroy called");
+        clearInterval(interval);
+		const [ok, status] = await leaveLobby();
+		if (!ok) {
+			console.log('When attempting to leave lobby, got status', status);
+		}
+	});
+
+	let host: string = '';
+	let players: string[] = [];
+	$: if ($lobbyStore !== undefined) {
+		({ host, players } = $lobbyStore);
+	}
 </script>
 
-{t ?? ""}
+<div>
+	<div>Host: {host || 'Host left'}</div>
+	<div>Players</div>
+	<ol>
+		{#each players as player}
+			<li>{player || 'Empty'}</li>
+		{/each}
+	</ol>
+</div>

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -56,14 +55,6 @@ func (g GameState) Visible(player int) VisibleGameState {
 		Bid:           g.Bid,
 		BidWinner:     g.BidWinner,
 	}
-}
-
-func GetFreeGameID() string {
-	// todo: check for duplicates?
-	rand.Seed(time.Now().UnixNano())
-	b := make([]byte, GAME_ID_LENGTH+2)
-	rand.Read(b)
-	return fmt.Sprintf("%x", b[2:GAME_ID_LENGTH+2])
 }
 
 func deal() ([4][]Card, [5]Card) {
