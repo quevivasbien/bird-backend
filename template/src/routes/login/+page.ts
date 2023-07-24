@@ -17,7 +17,6 @@ export function load(event: LoadEvent) {
                 }),
             }
         );
-        console.log(response);
         if (response.ok) {
             const userInfo = await response.json();
             userStore.set(userInfo);

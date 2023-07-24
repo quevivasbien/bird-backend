@@ -10,7 +10,6 @@ export function load(event: LoadEvent) {
                 method: "PUT",
             }
         );
-        console.log(response);
         if (response.ok) {
             const lobbyInfo = await response.json();
             lobbyStore.set(lobbyInfo);
@@ -25,7 +24,6 @@ export function load(event: LoadEvent) {
                 method: "POST",
             }
         );
-        console.log(response);
         if (response.ok) {
             const lobbyInfo = await response.json();
             lobbyStore.set(lobbyInfo);

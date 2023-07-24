@@ -17,7 +17,6 @@ export function load(event: LoadEvent) {
                 method: "POST",
             },
         );
-        console.log(response);
         if (response.ok) {
             userStore.set(undefined);
         }
@@ -32,7 +31,6 @@ export function load(event: LoadEvent) {
                 method: "GET",
             },
         );
-        console.log(response);
         if (!response.ok) {
             console.log("Problem when attempting to fetch user info:", response.statusText);
             return;

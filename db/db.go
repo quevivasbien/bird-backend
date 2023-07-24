@@ -151,6 +151,22 @@ func updateItem(t Table, id string, updates map[string]interface{}) error {
 	return nil
 }
 
+func deleteItem(t Table, id string) error {
+	_, err := t.Client().DeleteItem(
+		context.TODO(),
+		&dynamodb.DeleteItemInput{
+			TableName: aws.String(t.Name()),
+			Key: map[string]types.AttributeValue{
+				t.IndexName(): &types.AttributeValueMemberS{Value: id},
+			},
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("Error when deleting item %s from table %s: %v", id, t.Name(), err)
+	}
+	return nil
+}
+
 type Tables struct {
 	Region string
 	UserTable

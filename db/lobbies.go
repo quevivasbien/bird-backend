@@ -77,3 +77,7 @@ func (t LobbyTable) PutLobby(l Lobby) error {
 func (t LobbyTable) UpdateLobby(id string, updates map[string]interface{}) error {
 	return updateItem(t, id, updates)
 }
+
+func (t LobbyTable) DeleteLobby(id string) error {
+	return deleteItem(t, id)
+}
