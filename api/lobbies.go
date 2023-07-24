@@ -67,6 +67,14 @@ func (m LobbyManager) Subscribe(id string, subscriber string) (LobbySubscription
 	return sub, nil
 }
 
+func (m LobbyManager) Unsubscribe(id string, subscriber string) {
+	_, exists := m.subs[id]
+	if !exists {
+		return
+	}
+	delete(m.subs[id], subscriber)
+}
+
 var lobbyManager = LobbyManager{
 	lobbies: make(map[string]game.Lobby),
 	subs:    make(map[string]map[string]LobbySubscription),
@@ -81,11 +89,7 @@ func createLobby(c *fiber.Ctx) error {
 	if _, exists := lobbyManager.Get(lobbyID); exists {
 		return c.SendStatus(fiber.StatusConflict)
 	}
-	lobby := game.Lobby{
-		ID:      lobbyID,
-		Host:    authInfo.Name,
-		Players: [4]string{authInfo.Name},
-	}
+	lobby := game.MakeLobby(lobbyID, authInfo.Name)
 	lobbyManager.Put(lobby)
 	return c.JSON(lobby)
 }
@@ -110,14 +114,7 @@ func subscribeToLobby(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	// require player to be member of lobby in order to subscribe
-	playerInLobby := false
-	for _, p := range lobby.Players {
-		if p == authInfo.Name {
-			playerInLobby = true
-			break
-		}
-	}
-	if !playerInLobby && !authInfo.Admin {
+	if !lobby.HasPlayer(authInfo.Name) && !authInfo.Admin {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
@@ -150,7 +147,7 @@ func subscribeToLobby(c *fiber.Ctx) error {
 					log.Printf("Notifying of continue signal")
 					fmt.Fprint(w, "event: continue\n\n")
 				} else {
-					log.Printf("Notifying of lobby deletion")
+					log.Printf("Notifying of lobby deletion; code = %v", code)
 					fmt.Fprint(w, "event: delete\n\n")
 				}
 				return
@@ -232,7 +229,7 @@ func leaveLobby(c *fiber.Ctx) error {
 		}
 	}
 
-	// if player is host, set new host, or delete game if no host remains
+	// if player is host, set new host; delete game if no host remains
 	lobby.Host = ""
 	for _, player := range lobby.Players {
 		if player != "" {
@@ -242,6 +239,8 @@ func leaveLobby(c *fiber.Ctx) error {
 	if lobby.Host == "" {
 		lobbyManager.Delete(lobbyID, 1)
 		return c.SendStatus(fiber.StatusOK)
+	} else {
+		lobbyManager.Unsubscribe(lobbyID, userInfo.Name)
 	}
 
 	lobbyManager.Put(lobby)

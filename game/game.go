@@ -51,3 +51,12 @@ func (g GameState) Visible(player int) VisibleGameState {
 		BidWinner:     g.BidWinner,
 	}
 }
+
+func hasPlayer(players [4]string, player string) bool {
+	for _, p := range players {
+		if p == player {
+			return true
+		}
+	}
+	return false
+}

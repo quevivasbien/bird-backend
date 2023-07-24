@@ -1,11 +1,14 @@
 package api
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/game"
+	"github.com/valyala/fasthttp"
 )
 
 type BidCloseCode int
@@ -106,6 +109,104 @@ func startBidding(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
+func submitBid(c *fiber.Ctx) error {
+	gameID := c.Params("gameid")
+	bidState, exists := bidManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	authInfo, err := UnloadTokenCookie(c)
+	if err != nil {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	if (authInfo.Name == "" || !bidState.HasPlayer(authInfo.Name)) && !authInfo.Admin {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	bid := struct {
+		Amount int `json:"amount"`
+	}{}
+	if err := c.BodyParser(&bid); err != nil {
+		log.Println("When parsing bid submission:", err)
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	err = bidState.ProcessBid(authInfo.Name, bid.Amount)
+	if err != nil {
+		log.Println("When checking if bid is valid for current bid state:", err)
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	bidManager.Put(bidState)
+	if bidState.Done {
+		bidManager.Delete(gameID, ContinueToGame)
+	}
+
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func subscribeToBids(c *fiber.Ctx) error {
+	gameID := c.Params("gameid")
+	bidState, exists := bidManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	authInfo, err := UnloadTokenCookie(c)
+	if err != nil || authInfo.Name == "" {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	// require player to be member of game in order to subscribe
+	if !bidState.HasPlayer(authInfo.Name) && !authInfo.Admin {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	sub, err := bidManager.Subscribe(gameID, authInfo.Name)
+	if err != nil {
+		log.Println("When subscribing to bid stream:", err)
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Transfer-Encoding", "chunked")
+
+	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+		log.Println("Subscribed to bid stream")
+		for {
+			select {
+			case b := <-sub.b:
+				data, err := json.Marshal(b)
+				if err != nil {
+					log.Println("Got error when processing bid notification:", err)
+					break
+				}
+				msg := fmt.Sprintf("event: update\ndata: %s\n\n", data)
+				log.Printf("Sending message:\n%v", msg)
+				fmt.Fprintf(w, msg)
+			case code := <-sub.close:
+				if code == ContinueToGame {
+					log.Printf("Notifying of continue signal")
+					fmt.Fprint(w, "event: continue\n\n")
+				} else {
+					log.Printf("Notifying of bidState deletion; code = %v", code)
+					fmt.Fprint(w, "event: delete\n\n")
+				}
+				return
+			}
+			err := w.Flush()
+			if err != nil {
+				log.Printf("Error while flushing: %v. Closing stream.", err)
+				return
+			}
+		}
+	}))
+
+	return nil
+}
+
 func setupBidding(r fiber.Router) {
 	r.Put("/:gameid", startBidding)
+	r.Post("/:gameid/bid", submitBid)
+	r.Get("/:gameid/subscribe", subscribeToBids)
 }

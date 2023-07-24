@@ -36,7 +36,6 @@ func deal() ([4][]Card, [5]Card) {
 			widow[i] = card
 			continue
 		}
-		// div := (i - 5) / 4
 		rem := (i - 5) % 4
 		hands[rem] = append(hands[rem], card)
 	}
@@ -51,6 +50,10 @@ func InitializeBidState(id string, players [4]string) BidState {
 		Hands:   hands,
 		Widow:   widow,
 	}
+}
+
+func (b BidState) HasPlayer(player string) bool {
+	return hasPlayer(b.Players, player)
 }
 
 func (b BidState) Winner() int {
@@ -73,7 +76,7 @@ func (b *BidState) AdvanceBidder() {
 	b.Done = true
 }
 
-func (b BidState) ProcessBid(player string, amt int) error {
+func (b *BidState) ProcessBid(player string, amt int) error {
 	// check that this is a valid bid
 	if b.Done {
 		return fmt.Errorf("Tried to send a bid while the game is not in the bidding stage")
