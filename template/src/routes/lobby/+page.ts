@@ -55,9 +55,24 @@ export function load(event: LoadEvent) {
         return [response.ok, response.status];
     };
 
+    const startGame = async () => {
+        const lobbyInfo = get(lobbyStore);
+        if (lobbyInfo === undefined) {
+            return [false, 0];
+        }
+        const response = await event.fetch(
+            base + "/api/games/" + lobbyInfo.id + "/bidding/start",
+            {
+                method: "POST",
+            },
+        );
+        return [response.ok, response.status];
+    }
+
     return {
         getLobbyState,
         swapPlayers,
         leaveLobby,
+        startGame,
     };
 }

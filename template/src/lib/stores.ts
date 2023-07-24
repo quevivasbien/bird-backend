@@ -12,6 +12,7 @@ interface LobbyInfo {
     id: string;
     host: string;
     players: string[];
+    started: boolean;
 }
 
 export const lobbyStore = writable<LobbyInfo | undefined>(undefined);

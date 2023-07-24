@@ -6,7 +6,7 @@
 
 	export let data;
 
-	const { getLobbyState, swapPlayers, leaveLobby } = data;
+	const { getLobbyState, swapPlayers, leaveLobby, startGame } = data;
 
     let interval: number;
 
@@ -47,6 +47,12 @@
         const newPos = (i + 1 + 4) % 4;
         swap(i, newPos);
     }
+
+    $: readyToStart = $lobbyStore?.players.reduce((acc, x) => acc && x !== "", true) ?? false;
+
+    function attemptStartGame() {
+        // todo
+    }
 </script>
 
 <div>
@@ -66,3 +72,7 @@
             </div>
 		{/each}
 </div>
+
+{#if amHost}
+    <button on:click={attemptStartGame} disabled={!readyToStart}>Start game</button>
+{/if}

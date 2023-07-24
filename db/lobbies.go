@@ -12,6 +12,7 @@ type Lobby struct {
 	ID      string    `json:"id"`
 	Host    string    `json:"host"`
 	Players [4]string `json:"players"`
+	Started bool      `json:"started"`
 }
 
 const LOBBY_TABLE_NAME = "Bird.Lobbies"
