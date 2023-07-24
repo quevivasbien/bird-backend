@@ -4,23 +4,15 @@ import type { LoadEvent } from "@sveltejs/kit";
 import { get } from "svelte/store";
 
 export function load(event: LoadEvent) {
-    // use this to update lobbyStore   
-    const getLobbyState = async () => {
+    const subscribeToLobby = async () => {
         const lobbyInfo = get(lobbyStore);
         if (lobbyInfo === undefined) {
             return;
         }
-        const response = await event.fetch(
-            base + "/api/lobbies/" + lobbyInfo.id,
-            {
-                method: "GET",
-            },
-        );
-        if (!response.ok) {
-            console.log("When fetching lobby state, got " + response.statusText);
-            return;
-        }
-        return await response.json();
+        const sse = new EventSource(
+            base + "/api/lobbies/" + lobbyInfo.id + "/subscribe",
+        )
+        return sse;
     };
 
     const swapPlayers = async (i: number, j: number) => {
@@ -70,7 +62,7 @@ export function load(event: LoadEvent) {
     }
 
     return {
-        getLobbyState,
+        subscribeToLobby,
         swapPlayers,
         leaveLobby,
         startGame,
