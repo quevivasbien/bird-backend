@@ -12,11 +12,9 @@ const CACHE_UPDATE_INTVL time.Duration = time.Millisecond * 500
 const CACHE_FLUSH_INTVL time.Duration = time.Second * 30
 
 var tables *db.Tables
-var dbCache *db.Cache
 
 func InitApi(r fiber.Router, t db.Tables) error {
 	tables = &t
-	dbCache = db.NewCache(CACHE_UPDATE_INTVL, CACHE_FLUSH_INTVL)
 	r.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Bird backend")
 	})

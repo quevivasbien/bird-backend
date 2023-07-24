@@ -1,6 +1,10 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
 
 type BidState struct {
 	GameID        string    `json:"gameID"`
@@ -11,6 +15,42 @@ type BidState struct {
 	Passed        [4]bool   `json:"passed"`
 	CurrentBidder int       `json:"currentBidder"`
 	Bid           int       `json:"bid"`
+}
+
+func deal() ([4][]Card, [5]Card) {
+	// get all cards
+	allCards := []Card{Rook}
+	for suite := Red; suite <= Black; suite++ {
+		for value := 1; value <= 14; value++ {
+			allCards = append(allCards, Card{suite, value})
+		}
+	}
+	// get random indices and distribute cards
+	rand.Seed(time.Now().UnixNano())
+	perm := rand.Perm(len(allCards))
+	hands := [4][]Card{}
+	widow := [5]Card{}
+	for i, j := range perm {
+		card := allCards[j]
+		if i < 5 {
+			widow[i] = card
+			continue
+		}
+		// div := (i - 5) / 4
+		rem := (i - 5) % 4
+		hands[rem] = append(hands[rem], card)
+	}
+	return hands, widow
+}
+
+func InitializeBidState(id string, players [4]string) BidState {
+	hands, widow := deal()
+	return BidState{
+		GameID:  id,
+		Players: players,
+		Hands:   hands,
+		Widow:   widow,
+	}
 }
 
 func (b BidState) Winner() int {

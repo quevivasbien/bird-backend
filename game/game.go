@@ -1,10 +1,5 @@
 package game
 
-import (
-	"math/rand"
-	"time"
-)
-
 const GAME_ID_LENGTH = 8
 
 type Color int
@@ -54,41 +49,5 @@ func (g GameState) Visible(player int) VisibleGameState {
 		Trump:         g.Trump,
 		Bid:           g.Bid,
 		BidWinner:     g.BidWinner,
-	}
-}
-
-func deal() ([4][]Card, [5]Card) {
-	// get all cards
-	allCards := []Card{Rook}
-	for suite := Red; suite <= Black; suite++ {
-		for value := 1; value <= 14; value++ {
-			allCards = append(allCards, Card{suite, value})
-		}
-	}
-	// get random indices and distribute cards
-	rand.Seed(time.Now().UnixNano())
-	perm := rand.Perm(len(allCards))
-	hands := [4][]Card{}
-	widow := [5]Card{}
-	for i, j := range perm {
-		card := allCards[j]
-		if i < 5 {
-			widow[i] = card
-			continue
-		}
-		// div := (i - 5) / 4
-		rem := (i - 5) % 4
-		hands[rem] = append(hands[rem], card)
-	}
-	return hands, widow
-}
-
-func InitializeBidState(id string, players [4]string) BidState {
-	hands, widow := deal()
-	return BidState{
-		GameID:  id,
-		Players: players,
-		Hands:   hands,
-		Widow:   widow,
 	}
 }

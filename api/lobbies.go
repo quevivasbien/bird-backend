@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/quevivasbien/bird-game/db"
+	"github.com/quevivasbien/bird-game/game"
 	"github.com/valyala/fasthttp"
 )
 
@@ -19,21 +19,21 @@ const (
 )
 
 type LobbySubscription struct {
-	l     chan db.Lobby
+	l     chan game.Lobby
 	close chan LobbyCloseCode
 }
 
 type LobbyManager struct {
-	lobbies map[string]db.Lobby
+	lobbies map[string]game.Lobby
 	subs    map[string](map[string]LobbySubscription)
 }
 
-func (m LobbyManager) Get(id string) (db.Lobby, bool) {
+func (m LobbyManager) Get(id string) (game.Lobby, bool) {
 	l, exists := m.lobbies[id]
 	return l, exists
 }
 
-func (m LobbyManager) Put(l db.Lobby) {
+func (m LobbyManager) Put(l game.Lobby) {
 	m.lobbies[l.ID] = l
 	subs, exists := m.subs[l.ID]
 	if !exists {
@@ -62,13 +62,13 @@ func (m LobbyManager) Subscribe(id string, subscriber string) (LobbySubscription
 	if !exists {
 		return LobbySubscription{}, fmt.Errorf("Attempted to subscribe to a lobby entry that doesn't exist")
 	}
-	sub := LobbySubscription{make(chan db.Lobby), make(chan LobbyCloseCode)}
+	sub := LobbySubscription{make(chan game.Lobby), make(chan LobbyCloseCode)}
 	m.subs[id][subscriber] = sub
 	return sub, nil
 }
 
 var lobbyManager = LobbyManager{
-	lobbies: make(map[string]db.Lobby),
+	lobbies: make(map[string]game.Lobby),
 	subs:    make(map[string]map[string]LobbySubscription),
 }
 
@@ -81,7 +81,7 @@ func createLobby(c *fiber.Ctx) error {
 	if _, exists := lobbyManager.Get(lobbyID); exists {
 		return c.SendStatus(fiber.StatusConflict)
 	}
-	lobby := db.Lobby{
+	lobby := game.Lobby{
 		ID:      lobbyID,
 		Host:    authInfo.Name,
 		Players: [4]string{authInfo.Name},
@@ -244,7 +244,7 @@ func leaveLobby(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	}
 
-	err = tables.PutLobby(lobby)
+	lobbyManager.Put(lobby)
 	if err != nil {
 		log.Println("When updating lobby players on db:", err)
 		return c.SendStatus(fiber.StatusInternalServerError)
