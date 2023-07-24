@@ -4,7 +4,7 @@
 
 	export let data;
 
-	const { subscribeToLobby, swapPlayers, leaveLobby, startGame } = data;
+	const { subscribeToLobby, swapPlayers, leaveLobby, startBidding } = data;
 
 	let sse: EventSource | undefined;
 
@@ -16,6 +16,7 @@
 	});
 
 	onDestroy(async () => {
+        sse?.close();
 		const [ok, status] = await leaveLobby();
 		if (!ok) {
 			console.log('When attempting to leave lobby, got status', status);
@@ -49,8 +50,11 @@
 
 	$: readyToStart = $lobbyStore?.players.reduce((acc, x) => acc && x !== '', true) ?? false;
 
-	function attemptStartGame() {
-		// todo
+	async function attemptStartBidding() {
+		const [ok, status] = await startBidding();
+        if (!ok) {
+			console.log('When attempting to start bidding, got status', status);
+		}
 	}
 </script>
 
@@ -64,7 +68,7 @@
 		{/if}
 		<div>
 			<div>
-				{i}. {player || 'Empty'}{#if player === host} (host){/if}
+				{i + 1}. {player || 'Empty'}{#if player === host}&ThickSpace;(host){/if}
 			</div>
 			{#if amHost}
 				<button on:click={() => movePlayerUp(i)}>Up</button>
@@ -75,5 +79,5 @@
 </div>
 
 {#if amHost}
-	<button on:click={attemptStartGame} disabled={!readyToStart}>Start game</button>
+	<button on:click={attemptStartBidding} disabled={!readyToStart}>Start game</button>
 {/if}

@@ -83,7 +83,7 @@ func deal() ([4][]Card, [5]Card) {
 	return hands, widow
 }
 
-func InitializeGame(id string, players [4]string) BidState {
+func InitializeBidState(id string, players [4]string) BidState {
 	hands, widow := deal()
 	return BidState{
 		GameID:  id,

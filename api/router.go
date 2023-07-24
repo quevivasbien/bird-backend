@@ -23,6 +23,7 @@ func InitApi(r fiber.Router, t db.Tables) error {
 
 	setupAuth(r.Group("/auth"))
 	setupLobbies(r.Group("/lobbies"))
+	setupBidding(r.Group("/bidding"))
 	setupGames(r.Group("/games"))
 
 	r.Get("/login/testAuth", func(c *fiber.Ctx) error {

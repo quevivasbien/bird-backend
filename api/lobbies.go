@@ -11,9 +11,16 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+type LobbyCloseCode int
+
+const (
+	ContinueToBidding LobbyCloseCode = iota
+	LobbyEmpty
+)
+
 type LobbySubscription struct {
 	l     chan db.Lobby
-	close chan int
+	close chan LobbyCloseCode
 }
 
 type LobbyManager struct {
@@ -38,14 +45,14 @@ func (m LobbyManager) Put(l db.Lobby) {
 	}
 }
 
-func (m LobbyManager) Delete(id string) {
+func (m LobbyManager) Delete(id string, code LobbyCloseCode) {
 	delete(m.lobbies, id)
 	subs, exists := m.subs[id]
 	if !exists {
 		return
 	}
 	for _, s := range subs {
-		s.close <- 0
+		s.close <- code
 	}
 	delete(m.subs, id)
 }
@@ -55,7 +62,7 @@ func (m LobbyManager) Subscribe(id string, subscriber string) (LobbySubscription
 	if !exists {
 		return LobbySubscription{}, fmt.Errorf("Attempted to subscribe to a lobby entry that doesn't exist")
 	}
-	sub := LobbySubscription{make(chan db.Lobby), make(chan int)}
+	sub := LobbySubscription{make(chan db.Lobby), make(chan LobbyCloseCode)}
 	m.subs[id][subscriber] = sub
 	return sub, nil
 }
@@ -138,14 +145,20 @@ func subscribeToLobby(c *fiber.Ctx) error {
 				msg := fmt.Sprintf("event: update\ndata: %s\n\n", data)
 				log.Printf("Sending message:\n%v", msg)
 				fmt.Fprintf(w, msg)
-			case <-sub.close:
-				log.Println("Sending end message")
-				fmt.Fprint(w, "event: end\n\n")
+			case code := <-sub.close:
+				if code == ContinueToBidding {
+					log.Printf("Notifying of continue signal")
+					fmt.Fprint(w, "event: continue\n\n")
+				} else {
+					log.Printf("Notifying of lobby deletion")
+					fmt.Fprint(w, "event: delete\n\n")
+				}
+				return
 			}
 			err := w.Flush()
 			if err != nil {
 				log.Printf("Error while flushing: %v. Closing stream.", err)
-				break
+				return
 			}
 		}
 	}))
@@ -171,6 +184,7 @@ func swapLobbyOrder(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
 	if !(lobby.Host == authInfo.Name || authInfo.Admin) {
+		log.Printf("Attempted to swap lobby order with name %s, lobby host %s, and admin status = %v", authInfo.Name, lobby.Host, authInfo.Admin)
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 	i, j := swap.I, swap.J
@@ -192,7 +206,7 @@ func joinLobby(c *fiber.Ctx) error {
 	for i, player := range lobby.Players {
 		if player == "" {
 			lobby.Players[i] = authInfo.Name
-			tables.PutLobby(lobby)
+			lobbyManager.Put(lobby)
 			return c.JSON(lobby)
 		}
 	}
@@ -226,7 +240,7 @@ func leaveLobby(c *fiber.Ctx) error {
 		}
 	}
 	if lobby.Host == "" {
-		lobbyManager.Delete(lobbyID)
+		lobbyManager.Delete(lobbyID, 1)
 		return c.SendStatus(fiber.StatusOK)
 	}
 

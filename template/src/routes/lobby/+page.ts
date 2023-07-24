@@ -47,15 +47,15 @@ export function load(event: LoadEvent) {
         return [response.ok, response.status];
     };
 
-    const startGame = async () => {
+    const startBidding = async () => {
         const lobbyInfo = get(lobbyStore);
         if (lobbyInfo === undefined) {
             return [false, 0];
         }
         const response = await event.fetch(
-            base + "/api/games/" + lobbyInfo.id + "/bidding/start",
+            `${base}/api/bidding/${lobbyInfo.id}`,
             {
-                method: "POST",
+                method: "PUT",
             },
         );
         return [response.ok, response.status];
@@ -65,6 +65,6 @@ export function load(event: LoadEvent) {
         subscribeToLobby,
         swapPlayers,
         leaveLobby,
-        startGame,
+        startBidding,
     };
 }

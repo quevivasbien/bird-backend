@@ -14,7 +14,7 @@ export function load(event: LoadEvent) {
             const lobbyInfo = await response.json();
             lobbyStore.set(lobbyInfo);
         }
-        return [response.ok, response.status]; 
+        return [response.ok, response.status];
     };
 
     const joinLobby = async (id: string) => {
