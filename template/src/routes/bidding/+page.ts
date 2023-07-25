@@ -10,7 +10,7 @@ export function load(event: LoadEvent) {
             return;
         }
         const sse = new EventSource(
-            `${base}/api/bidding/${bidInfo.gameID}/subscribe`,
+            `${base}/api/bidding/${bidInfo.id}/subscribe`,
         );
         return sse;
     };
@@ -21,7 +21,7 @@ export function load(event: LoadEvent) {
             return [false, 0];
         }
         const response = await event.fetch(
-            `${base}/api/bidding/${bidInfo.gameID}`,
+            `${base}/api/bidding/${bidInfo.id}`,
             {
                 method: "POST",
                 headers: {

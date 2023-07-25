@@ -10,7 +10,7 @@ export function load(event: LoadEvent) {
             return;
         }
         const sse = new EventSource(
-            base + "/api/lobbies/" + lobbyInfo.id + "/subscribe",
+           `${base}/api/lobbies/${lobbyInfo.id}/subscribe`,
         );
         return sse;
     };

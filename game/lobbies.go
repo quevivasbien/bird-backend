@@ -14,6 +14,10 @@ func MakeLobby(id string, host string) Lobby {
 	}
 }
 
+func (l Lobby) GetID() string {
+	return l.ID
+}
+
 func (l Lobby) HasPlayer(player string) bool {
 	return hasPlayer(l.Players, player)
 }

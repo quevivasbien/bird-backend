@@ -17,7 +17,7 @@ export interface Card {
 }
 
 export interface BidInfo {
-    gameID: string;
+    id: string;
     done: boolean;
     players: string[];
     hands: Card[][];

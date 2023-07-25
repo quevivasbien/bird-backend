@@ -1,84 +1,13 @@
 package api
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/game"
-	"github.com/valyala/fasthttp"
 )
 
-type LobbyCloseCode int
-
-const (
-	ContinueToBidding LobbyCloseCode = iota
-	LobbyEmpty
-)
-
-type LobbySubscription struct {
-	l     chan game.Lobby
-	close chan LobbyCloseCode
-}
-
-type LobbyManager struct {
-	lobbies map[string]game.Lobby
-	subs    map[string](map[string]LobbySubscription)
-}
-
-func (m LobbyManager) Get(id string) (game.Lobby, bool) {
-	l, exists := m.lobbies[id]
-	return l, exists
-}
-
-func (m LobbyManager) Put(l game.Lobby) {
-	m.lobbies[l.ID] = l
-	subs, exists := m.subs[l.ID]
-	if !exists {
-		m.subs[l.ID] = make(map[string]LobbySubscription)
-		return
-	}
-	for _, s := range subs {
-		s.l <- l
-	}
-}
-
-func (m LobbyManager) Delete(id string, code LobbyCloseCode) {
-	delete(m.lobbies, id)
-	subs, exists := m.subs[id]
-	if !exists {
-		return
-	}
-	for _, s := range subs {
-		s.close <- code
-	}
-	delete(m.subs, id)
-}
-
-func (m LobbyManager) Subscribe(id string, subscriber string) (LobbySubscription, error) {
-	_, exists := m.subs[id]
-	if !exists {
-		return LobbySubscription{}, fmt.Errorf("Attempted to subscribe to a lobby entry that doesn't exist")
-	}
-	sub := LobbySubscription{make(chan game.Lobby), make(chan LobbyCloseCode)}
-	m.subs[id][subscriber] = sub
-	return sub, nil
-}
-
-func (m LobbyManager) Unsubscribe(id string, subscriber string) {
-	_, exists := m.subs[id]
-	if !exists {
-		return
-	}
-	delete(m.subs[id], subscriber)
-}
-
-var lobbyManager = LobbyManager{
-	lobbies: make(map[string]game.Lobby),
-	subs:    make(map[string]map[string]LobbySubscription),
-}
+var lobbyManager = MakeManager[game.Lobby]()
 
 func createLobby(c *fiber.Ctx) error {
 	authInfo, err := UnloadTokenCookie(c)
@@ -122,47 +51,11 @@ func subscribeToLobby(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	sub, err := lobbyManager.Subscribe(lobbyID, authInfo.Name)
+	_, err = lobbyManager.Subscribe(lobbyID, authInfo.Name, c)
 	if err != nil {
 		log.Println("When subscribing to lobby stream:", err)
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
-
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
-
-	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		log.Println("Subscribed to lobby stream")
-		for {
-			select {
-			case l := <-sub.l:
-				data, err := json.Marshal(l)
-				if err != nil {
-					log.Println("Got error when processing lobby notification:", err)
-					break
-				}
-				msg := fmt.Sprintf("event: update\ndata: %s\n\n", data)
-				log.Printf("Sending message:\n%v", msg)
-				fmt.Fprintf(w, msg)
-			case code := <-sub.close:
-				if code == ContinueToBidding {
-					log.Printf("Notifying of continue signal")
-					fmt.Fprintf(w, "event: continue\ndata: %d\n\n", code)
-				} else {
-					log.Printf("Notifying of lobby deletion; code = %v", code)
-					fmt.Fprintf(w, "event: delete\ndata: %d\n\n", code)
-				}
-				return
-			}
-			err := w.Flush()
-			if err != nil {
-				log.Printf("Error while flushing: %v. Closing stream.", err)
-				return
-			}
-		}
-	}))
 
 	return nil
 }

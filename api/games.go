@@ -1,20 +1,24 @@
 package api
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/game"
+	"github.com/valyala/fasthttp"
 )
 
 type GameCloseCode int
 
 const (
-	FinishGame BidCloseCode = iota
+	FinishGame GameCloseCode = iota
 )
 
 type GameSubscription struct {
-	b     chan game.GameState
+	g     chan game.GameState
 	close chan GameCloseCode
 }
 
@@ -28,15 +32,15 @@ func (m GameManager) Get(id string) (game.GameState, bool) {
 	return b, exists
 }
 
-func (m GameManager) Put(b game.GameState) {
-	m.gameStates[b.GameID] = b
-	subs, exists := m.subs[b.GameID]
+func (m GameManager) Put(g game.GameState) {
+	m.gameStates[g.ID] = g
+	subs, exists := m.subs[g.ID]
 	if !exists {
-		m.subs[b.GameID] = make(map[string]GameSubscription)
+		m.subs[g.ID] = make(map[string]GameSubscription)
 		return
 	}
 	for _, s := range subs {
-		s.b <- b
+		s.g <- g
 	}
 }
 
@@ -67,5 +71,98 @@ var gameManager = GameManager{
 	subs:       make(map[string]map[string]GameSubscription),
 }
 
+func setTrump(c *fiber.Ctx) error {
+	authInfo, err := UnloadTokenCookie(c)
+	if err != nil || authInfo.Name == "" {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	body := struct {
+		Trump game.Color `json:"trump"`
+	}{}
+	if err = c.BodyParser(&body); err != nil {
+		log.Println("Error parsing body of set trump request:", err)
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+	gameID := c.Params("gameid")
+	game, exists := gameManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	game.Trump = body.Trump
+	gameManager.Put(game)
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func getGameState(c *fiber.Ctx) error {
+	gameID := c.Params("gameid")
+	game, exists := gameManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	return c.JSON(game)
+}
+
+func subscribeToGame(c *fiber.Ctx) error {
+	gameID := c.Params("gameid")
+	gameState, exists := gameManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	authInfo, err := UnloadTokenCookie(c)
+	if err != nil || authInfo.Name == "" {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	// require player to be member of game in order to subscribe
+	if !gameState.HasPlayer(authInfo.Name) && !authInfo.Admin {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	sub, err := gameManager.Subscribe(gameID, authInfo.Name)
+	if err != nil {
+		log.Println("When subscribing to bid stream:", err)
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Transfer-Encoding", "chunked")
+
+	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+		log.Println("Subscribed to bid stream")
+		for {
+			select {
+			case g := <-sub.g:
+				data, err := json.Marshal(g)
+				if err != nil {
+					log.Println("Got error when processing bid notification:", err)
+					break
+				}
+				msg := fmt.Sprintf("event: update\ndata: %s\n\n", data)
+				log.Printf("Sending message:\n%v", msg)
+				fmt.Fprintf(w, msg)
+			case code := <-sub.close:
+				if code == FinishGame {
+					log.Printf("Notifying of continue signal")
+					fmt.Fprintf(w, "event: continue\ndata: %d\n\n", code)
+				} else {
+					log.Printf("Notifying of gameState deletion; code = %v", code)
+					fmt.Fprintf(w, "event: delete\ndata: %d\n\n", code)
+				}
+				return
+			}
+			err := w.Flush()
+			if err != nil {
+				log.Printf("Error while flushing: %v. Closing stream.", err)
+				return
+			}
+		}
+	}))
+	return nil
+}
+
 func setupGames(r fiber.Router) {
+	r.Get("/:gameid", getGameState)
+	r.Post("/:gameid/trump", setTrump)
+	r.Get("/:gameid/subscribe", subscribeToGame)
 }

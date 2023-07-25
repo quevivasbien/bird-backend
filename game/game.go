@@ -19,7 +19,7 @@ type Card struct {
 var Bird Card = Card{0, 0}
 
 type GameState struct {
-	GameID        string    `json:"gameID"`
+	ID            string    `json:"id"`
 	Players       [4]string `json:"players"`
 	Hands         [4][]Card `json:"hands"`
 	Discarded     [2][]Card `json:"discarded"`
@@ -29,6 +29,14 @@ type GameState struct {
 	Trump         Color     `json:"trump"`
 	Bid           int       `json:"bid"`
 	BidWinner     int       `json:"bidWinner"`
+}
+
+func (g GameState) GetID() string {
+	return g.ID
+}
+
+func (g GameState) HasPlayer(player string) bool {
+	return hasPlayer(g.Players, player)
 }
 
 // state of the game visible to a player during the game
@@ -59,4 +67,8 @@ func hasPlayer(players [4]string, player string) bool {
 		}
 	}
 	return false
+}
+
+type HasID interface {
+	GetID() string
 }

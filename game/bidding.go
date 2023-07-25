@@ -7,7 +7,7 @@ import (
 )
 
 type BidState struct {
-	GameID        string    `json:"gameID"`
+	ID            string    `json:"id"`
 	Done          bool      `json:"done"`
 	Players       [4]string `json:"players"`
 	Hands         [4][]Card `json:"hands"`
@@ -15,6 +15,10 @@ type BidState struct {
 	Passed        [4]bool   `json:"passed"`
 	CurrentBidder int       `json:"currentBidder"`
 	Bid           int       `json:"bid"`
+}
+
+func (b BidState) GetID() string {
+	return b.ID
 }
 
 func deal() ([4][]Card, [5]Card) {
@@ -45,7 +49,7 @@ func deal() ([4][]Card, [5]Card) {
 func InitializeBidState(id string, players [4]string) BidState {
 	hands, widow := deal()
 	return BidState{
-		GameID:  id,
+		ID:      id,
 		Players: players,
 		Hands:   hands,
 		Widow:   widow,
@@ -82,7 +86,7 @@ func (b *BidState) AdvanceBidder() {
 			}
 		}
 	}
-	if numNotPassed == 0 {
+	if numNotPassed == 0 || (b.Passed[b.CurrentBidder] && numNotPassed == 1) {
 		b.Done = true
 	}
 	b.CurrentBidder = nextBidder
