@@ -1,18 +1,32 @@
 <script lang="ts">
-	import { lobbyStore, userStore } from '$lib/stores';
+	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
+	import { bidStore, lobbyStore, userStore } from '$lib/stores';
 	import { onDestroy, onMount } from 'svelte';
 
 	export let data;
 
-	const { subscribeToLobby, swapPlayers, leaveLobby, startBidding } = data;
+	const { subscribeToLobby, swapPlayers, leaveLobby, startBidding, receiveBidState } = data;
 
 	let sse: EventSource | undefined;
 
-	onMount(async () => {
-		sse = await subscribeToLobby();
+	onMount(() => {
+		sse = subscribeToLobby();
 		sse?.addEventListener("update", (e) => {
             $lobbyStore = JSON.parse(e.data);
         });
+		sse?.addEventListener("continue", (e) => {
+			receiveBidState().then(([ok, status]) => {
+				if (ok) {
+					goto(`${base}/bidding`);
+				}
+				else {
+					console.log("Something went wrong when trying to fetch bid state. Status = " + status);
+					goto(`${base}/`);
+				}
+			});
+		});
+		sse?.addEventListener("message", (e) => console.log("message:", e.data));
 	});
 
 	onDestroy(async () => {

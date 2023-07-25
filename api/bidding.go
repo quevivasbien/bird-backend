@@ -109,6 +109,15 @@ func startBidding(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusOK)
 }
 
+func getBidState(c *fiber.Ctx) error {
+	gameID := c.Params("gameid")
+	bidState, exists := bidManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	return c.JSON(bidState)
+}
+
 func submitBid(c *fiber.Ctx) error {
 	gameID := c.Params("gameid")
 	bidState, exists := bidManager.Get(gameID)
@@ -207,6 +216,7 @@ func subscribeToBids(c *fiber.Ctx) error {
 
 func setupBidding(r fiber.Router) {
 	r.Put("/:gameid", startBidding)
+	r.Get("/:gameid", getBidState)
 	r.Post("/:gameid/bid", submitBid)
 	r.Get("/:gameid/subscribe", subscribeToBids)
 }

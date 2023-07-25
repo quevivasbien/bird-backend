@@ -16,3 +16,18 @@ interface LobbyInfo {
 }
 
 export const lobbyStore = writable<LobbyInfo | undefined>(undefined);
+
+type Card = [number, number];
+
+interface BidInfo {
+    gameID: string;
+    done: boolean;
+    players: string[];
+    hands: Card[][];
+    widow: Card[];
+    passed: boolean[];
+    currentBidder: number;
+    bid: number;
+}
+
+export const bidStore = writable<BidInfo | undefined>(undefined);
