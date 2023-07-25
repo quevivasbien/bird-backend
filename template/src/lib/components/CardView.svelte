@@ -1,14 +1,15 @@
 <script lang="ts">
-    export let color: number;
-    export let value: number;
+	import type { Card } from "$lib/types";
+
+    export let card: Card;
 
     const colors = ["", "Red", "Yellow", "Green", "Black"]
 
     let description: string;
-    if (color === 0) {
+    if (card.color === 0) {
         description = "Bird";
     } else {
-        description = `${colors[color]} ${value}`;
+        description = `${colors[card.color]} ${card.value}`;
     }
 </script>
 

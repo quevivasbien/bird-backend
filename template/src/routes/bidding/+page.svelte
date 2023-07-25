@@ -1,6 +1,7 @@
 <script lang="ts">
-	import Card from '$lib/components/Card.svelte';
+	import CardView from '$lib/components/CardView.svelte';
 	import { bidStore, userStore } from '$lib/stores.js';
+	import type { BidInfo } from '$lib/types.js';
 	import { onDestroy, onMount } from 'svelte';
 
 	export let data;
@@ -20,12 +21,72 @@
 		sse?.close();
 	});
 
-	const myIndex = $bidStore?.players.indexOf($userStore?.name ?? '') ?? 0;
-	const myHand = $bidStore?.hands[myIndex] ?? [];
+	const yourIndex = $bidStore?.players.indexOf($userStore?.name ?? '') ?? 0;
+	const yourHand = $bidStore?.hands[yourIndex] ?? [];
+
+	$: currentBid = $bidStore?.bid ?? 0;
+	$: currentBidder = $bidStore?.currentBidder ?? -1;
+    $: console.log("currentBidder:", currentBidder);
+    
+	$: bidLeader = getBidLeader($bidStore);
+
+	function getBidLeader(bidState: BidInfo | undefined) {
+		if (bidState === undefined) {
+			return -1;
+		}
+		let leader = (bidState.currentBidder - 1 + 4) % 4;
+		while (bidState.passed[leader]) {
+			leader = (leader - 1 + 4) % 4;
+		}
+		return leader;
+	}
+
+    let yourBid: number;
+    $: updateYourBid(currentBid);
+
+    function updateYourBid(b: number) {
+        yourBid = Math.max(100, b + 5);
+    }
+
+    function attemptSubmitBid(b?: number) {
+        if (b === undefined) {
+            b = yourBid;
+        }
+        submitBid(b).then(
+            ([ok, status]) => {
+                if (!ok) {
+                    console.log("Problem submitting bid; status = ", status);
+                }
+            }
+        );
+    }
+
+    function pass() {
+        attemptSubmitBid(0);
+    }
 </script>
 
 <h1>Bidding</h1>
+
+<div>
+	<div>
+		{#if currentBidder === yourIndex}Your{:else}Player {currentBidder + 1}'s{/if} turn to bid
+	</div>
+	{#if currentBid > 0}
+		<div>Current bid: {currentBid} (Player {bidLeader + 1})</div>
+	{/if}
+	{#if currentBidder === yourIndex}
+        <form on:submit|preventDefault={() => attemptSubmitBid()}>
+            <input type="text" bind:value={yourBid} />
+            <button type="button" on:click={() => yourBid -= 5} disabled={yourBid <= currentBid + 5}>Down</button>
+            <button type="button" on:click={() => yourBid += 5}>Up</button>
+            <button type="submit">Submit</button>
+            <button type="button" on:click={pass}>Pass</button>
+        </form>
+	{/if}
+</div>
+
 <h2>Your hand</h2>
-{#each myHand as card}
-	<Card color={card.color} value={card.value} />
+{#each yourHand as card}
+	<CardView {card} />
 {/each}

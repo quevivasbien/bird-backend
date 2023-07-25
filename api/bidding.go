@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/game"
@@ -151,6 +153,21 @@ func submitBid(c *fiber.Ctx) error {
 		bidManager.Delete(gameID, ContinueToGame)
 	}
 
+	// for testing
+	if gameID == "test" {
+		go func() {
+			time.Sleep(time.Second)
+			for strings.HasPrefix(bidState.Players[bidState.CurrentBidder], "dummy") {
+				bidState.ProcessBid(bidState.Players[bidState.CurrentBidder], 0)
+				bidManager.Put(bidState)
+				time.Sleep(time.Second)
+			}
+			if bidState.Done {
+				bidManager.Delete(gameID, ContinueToGame)
+			}
+		}()
+	}
+
 	return c.SendStatus(fiber.StatusOK)
 }
 
@@ -196,10 +213,10 @@ func subscribeToBids(c *fiber.Ctx) error {
 			case code := <-sub.close:
 				if code == ContinueToGame {
 					log.Printf("Notifying of continue signal")
-					fmt.Fprint(w, "event: continue\n\n")
+					fmt.Fprintf(w, "event: continue\ndata: %d\n\n", code)
 				} else {
 					log.Printf("Notifying of bidState deletion; code = %v", code)
-					fmt.Fprint(w, "event: delete\n\n")
+					fmt.Fprintf(w, "event: delete\ndata: %d\n\n", code)
 				}
 				return
 			}
@@ -217,6 +234,6 @@ func subscribeToBids(c *fiber.Ctx) error {
 func setupBidding(r fiber.Router) {
 	r.Put("/:gameid", startBidding)
 	r.Get("/:gameid", getBidState)
-	r.Post("/:gameid/bid", submitBid)
+	r.Post("/:gameid", submitBid)
 	r.Get("/:gameid/subscribe", subscribeToBids)
 }

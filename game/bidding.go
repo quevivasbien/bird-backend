@@ -36,7 +36,7 @@ func deal() ([4][]Card, [5]Card) {
 			widow[i] = card
 			continue
 		}
-		rem := (i - 5) % 4
+		rem := (i - 5 + 4) % 4
 		hands[rem] = append(hands[rem], card)
 	}
 	return hands, widow
@@ -66,14 +66,26 @@ func (b BidState) Winner() int {
 // find the next bidder who hasn't passed, and set them as the CurrentBidder
 // if only one player remains, set bidding state to Done
 func (b *BidState) AdvanceBidder() {
-	i := (b.CurrentBidder + 1) % 4
-	for i != b.CurrentBidder {
-		if !b.Passed[i] {
-			b.CurrentBidder = i
-			return
+	numNotPassed := 0
+	minDist := 0
+	nextBidder := b.CurrentBidder
+	for i, passed := range b.Passed {
+		if i == b.CurrentBidder {
+			continue
+		}
+		if !passed {
+			numNotPassed++
+			dist := (i - b.CurrentBidder + 4) % 4
+			if dist < minDist || minDist == 0 {
+				minDist = dist
+				nextBidder = i
+			}
 		}
 	}
-	b.Done = true
+	if numNotPassed == 0 {
+		b.Done = true
+	}
+	b.CurrentBidder = nextBidder
 }
 
 func (b *BidState) ProcessBid(player string, amt int) error {
