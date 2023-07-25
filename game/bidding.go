@@ -19,7 +19,7 @@ type BidState struct {
 
 func deal() ([4][]Card, [5]Card) {
 	// get all cards
-	allCards := []Card{Rook}
+	allCards := []Card{Bird}
 	for suite := Red; suite <= Black; suite++ {
 		for value := 1; value <= 14; value++ {
 			allCards = append(allCards, Card{suite, value})

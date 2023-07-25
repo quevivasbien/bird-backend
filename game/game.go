@@ -12,11 +12,11 @@ const (
 )
 
 type Card struct {
-	Color Color
-	Value int
+	Color Color `json:"color"`
+	Value int   `json:"value"`
 }
 
-var Rook Card = Card{0, 0}
+var Bird Card = Card{0, 0}
 
 type GameState struct {
 	GameID        string    `json:"gameID"`

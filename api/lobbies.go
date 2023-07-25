@@ -90,6 +90,10 @@ func createLobby(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusConflict)
 	}
 	lobby := game.MakeLobby(lobbyID, authInfo.Name)
+	// for testing
+	if lobbyID == "test" {
+		lobby.Players = [4]string{authInfo.Name, "dummy1", "dummy2", "dummy3"}
+	}
 	lobbyManager.Put(lobby)
 	return c.JSON(lobby)
 }
@@ -145,10 +149,10 @@ func subscribeToLobby(c *fiber.Ctx) error {
 			case code := <-sub.close:
 				if code == ContinueToBidding {
 					log.Printf("Notifying of continue signal")
-					fmt.Fprint(w, "event: continue\n\n")
+					fmt.Fprintf(w, "event: continue\ndata: %d\n\n", code)
 				} else {
 					log.Printf("Notifying of lobby deletion; code = %v", code)
-					fmt.Fprint(w, "event: delete\n\n")
+					fmt.Fprintf(w, "event: delete\ndata: %d\n\n", code)
 				}
 				return
 			}

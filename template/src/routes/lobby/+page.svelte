@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { bidStore, lobbyStore, userStore } from '$lib/stores';
+	import { lobbyStore, userStore } from '$lib/stores';
 	import { onDestroy, onMount } from 'svelte';
 
 	export let data;

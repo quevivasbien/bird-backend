@@ -17,7 +17,10 @@ interface LobbyInfo {
 
 export const lobbyStore = writable<LobbyInfo | undefined>(undefined);
 
-type Card = [number, number];
+interface Card {
+    color: number;
+    value: number;
+}
 
 interface BidInfo {
     gameID: string;

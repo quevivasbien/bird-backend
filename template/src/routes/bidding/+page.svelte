@@ -12,7 +12,6 @@
 	onMount(() => {
 		sse = subscribeToBids();
 		sse?.addEventListener('update', (e) => {
-			console.log(e.data);
 			$bidStore = JSON.parse(e.data);
 		});
 	});
@@ -28,5 +27,5 @@
 <h1>Bidding</h1>
 <h2>Your hand</h2>
 {#each myHand as card}
-	<Card suit={card[0]} value={card[1]} />
+	<Card color={card.color} value={card.value} />
 {/each}

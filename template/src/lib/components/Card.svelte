@@ -1,14 +1,14 @@
 <script lang="ts">
-    export let suit: number;
+    export let color: number;
     export let value: number;
 
-    const suites = ["", "Red", "Yellow", "Green", "Black"]
+    const colors = ["", "Red", "Yellow", "Green", "Black"]
 
     let description: string;
-    if (suit === 0) {
-        description = "Rook";
+    if (color === 0) {
+        description = "Bird";
     } else {
-        description = `${suites[suit]} ${value}`;
+        description = `${colors[color]} ${value}`;
     }
 </script>
 
