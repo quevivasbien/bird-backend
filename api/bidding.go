@@ -40,7 +40,7 @@ func startBidding(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 	if !playerInLobby {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		return c.SendStatus(fiber.StatusForbidden)
 	}
 
 	lobbyManager.Delete(gameID, ContinueCode)
@@ -53,7 +53,7 @@ func startBidding(c *fiber.Ctx) error {
 
 func getBidState(c *fiber.Ctx) error {
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || (authInfo.Name == "" && !authInfo.Admin) {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	gameID := c.Params("gameid")
@@ -64,9 +64,9 @@ func getBidState(c *fiber.Ctx) error {
 	userIndex := utils.IndexOf(bidState.Players[:], authInfo.Name)
 	if userIndex == -1 {
 		log.Println("Tried to get game state for a player not in the game")
-		return c.SendStatus(fiber.StatusUnauthorized)
+		return c.SendStatus(fiber.StatusForbidden)
 	}
-	return c.JSON(bidState)
+	return c.JSON(bidState.Visible(userIndex))
 }
 
 func submitBid(c *fiber.Ctx) error {
@@ -79,8 +79,8 @@ func submitBid(c *fiber.Ctx) error {
 	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
-	if (authInfo.Name == "" || !bidState.HasPlayer(authInfo.Name)) && !authInfo.Admin {
-		return c.SendStatus(fiber.StatusUnauthorized)
+	if !bidState.HasPlayer(authInfo.Name) && !authInfo.Admin {
+		return c.SendStatus(fiber.StatusForbidden)
 	}
 
 	bid := struct {
@@ -143,12 +143,12 @@ func subscribeToBids(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	// require player to be member of game in order to subscribe
-	if !bidState.HasPlayer(authInfo.Name) && !authInfo.Admin {
-		return c.SendStatus(fiber.StatusUnauthorized)
+	if !bidState.HasPlayer(authInfo.Name) {
+		return c.SendStatus(fiber.StatusForbidden)
 	}
 
 	err = bidManager.Subscribe(gameID, authInfo.Name, c)

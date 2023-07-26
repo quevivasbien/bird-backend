@@ -81,8 +81,12 @@ func UnloadTokenCookie(c *fiber.Ctx) (JWTPayload, error) {
 		return JWTPayload{}, fmt.Errorf("Error parsing jwt from request cookie: %v", err)
 	}
 	payload := token.Claims.(jwt.MapClaims)
+	name := payload["sub"].(string)
+	if name == "" {
+		return JWTPayload{}, fmt.Errorf("Empty name in parsed JWT payload")
+	}
 	return JWTPayload{
-		Name:       payload["sub"].(string),
+		Name:       name,
 		Admin:      payload["admin"].(bool),
 		ExpireTime: int64(payload["exp"].(float64)),
 	}, nil

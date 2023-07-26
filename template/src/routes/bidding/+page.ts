@@ -1,5 +1,6 @@
 import { base } from "$app/paths";
-import { bidStore } from "$lib/stores";
+import { bidStore, gameStore } from "$lib/stores";
+import type { GameInfo } from "$lib/types";
 import type { LoadEvent } from "@sveltejs/kit";
 import { get } from "svelte/store";
 
@@ -33,8 +34,27 @@ export function load(event: LoadEvent) {
         return [response.ok, response.status];
     };
 
+    const receiveGameState = async () => {
+        const bidInfo = get(bidStore);
+        if (bidInfo === undefined) {
+            return [false, 0];
+        }
+        const response = await event.fetch(
+            `${base}/api/games/${bidInfo.id}`,
+            {
+                method: "GET",
+            },
+        );
+        if (response.ok) {
+            const data: GameInfo = await response.json();
+            gameStore.set(data);
+        }
+        return [response.ok, response.status];
+    };
+
     return {
         subscribeToBids,
         submitBid,
+        receiveGameState,
     };
 }

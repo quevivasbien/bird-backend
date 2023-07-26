@@ -25,3 +25,15 @@ export interface BidInfo {
     currentBidder: number;
     bid: number;
 }
+
+export interface GameInfo {
+    id: string;
+    done: boolean;
+    players: string[];
+    hand: Card[];
+    table: Card[];
+    currentPlayer: number;
+    trump: number;
+    bid: number;
+    bidWinner: number;
+}

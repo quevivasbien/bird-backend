@@ -8,7 +8,7 @@
 
 	export let data;
 
-	const { subscribeToBids, submitBid } = data;
+	const { subscribeToBids, submitBid, receiveGameState } = data;
 
 	let sse: EventSource | undefined;
 
@@ -19,16 +19,23 @@
 		});
 		sse?.addEventListener('continue', (e) => {
 			console.log('winner is ', $bidStore?.currentBidder);
-            setTimeout(
-                () => goto(`${base}/game`),
-                1000,
-            );
+			biddingDone = true;
+			receiveGameState().then(([ok, status]) => {
+				if (ok) {
+					setTimeout(() => goto(`${base}/game`), 2000);
+				}
+				else {
+					console.log("Problem getting game info, status = " + status);
+				}
+			});
 		});
 	});
 
 	onDestroy(() => {
 		sse?.close();
 	});
+
+	let biddingDone = false;
 
 	const yourIndex = $bidStore?.players.indexOf($userStore?.name ?? '') ?? 0;
 	const yourHand = $bidStore?.hand ?? [];
@@ -76,22 +83,28 @@
 <h1>Bidding</h1>
 
 <div>
-	<div>
-		{#if currentBidder === yourIndex}Your{:else}Player {currentBidder + 1}'s{/if} turn to bid
-	</div>
-	{#if currentBid > 0}
-		<div>Current bid: {currentBid} (Player {bidLeader + 1})</div>
-	{/if}
-	{#if currentBidder === yourIndex}
-		<form on:submit|preventDefault={() => attemptSubmitBid()}>
-			<input type="text" bind:value={yourBid} />
-			<button type="button" on:click={() => (yourBid -= 5)} disabled={yourBid <= currentBid + 5}
-				>Down</button
-			>
-			<button type="button" on:click={() => (yourBid += 5)}>Up</button>
-			<button type="submit">Submit</button>
-			<button type="button" on:click={pass}>Pass</button>
-		</form>
+	{#if !biddingDone}
+		<div>
+			{#if currentBidder === yourIndex}Your{:else}Player {currentBidder + 1}'s{/if} turn to bid
+		</div>
+		{#if currentBid > 0}
+			<div>Current bid: {currentBid} (Player {bidLeader + 1})</div>
+		{/if}
+		{#if currentBidder === yourIndex}
+			<form on:submit|preventDefault={() => attemptSubmitBid()}>
+				<input type="text" bind:value={yourBid} />
+				<button type="button" on:click={() => (yourBid -= 5)} disabled={yourBid <= currentBid + 5}
+					>Down</button
+				>
+				<button type="button" on:click={() => (yourBid += 5)}>Up</button>
+				<button type="submit">Submit</button>
+				<button type="button" on:click={pass}>Pass</button>
+			</form>
+		{/if}
+	{:else}
+		<div>
+			Player {currentBidder + 1} won the bid for {currentBid}!
+		</div>
 	{/if}
 </div>
 

@@ -11,7 +11,7 @@ var lobbyManager = MakeManager[game.Lobby]()
 
 func createLobby(c *fiber.Ctx) error {
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	lobbyID := c.Params("lobby")
@@ -43,7 +43,7 @@ func subscribeToLobby(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	// require player to be member of lobby in order to subscribe
@@ -69,7 +69,7 @@ func swapLobbyOrder(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	lobbyID := c.Params("lobby")
@@ -89,7 +89,7 @@ func swapLobbyOrder(c *fiber.Ctx) error {
 
 func joinLobby(c *fiber.Ctx) error {
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	lobbyID := c.Params("lobby")
