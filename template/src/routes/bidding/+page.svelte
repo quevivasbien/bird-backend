@@ -31,7 +31,7 @@
 	});
 
 	const yourIndex = $bidStore?.players.indexOf($userStore?.name ?? '') ?? 0;
-	const yourHand = $bidStore?.hands[yourIndex] ?? [];
+	const yourHand = $bidStore?.hand ?? [];
 
 	$: currentBid = $bidStore?.bid ?? 0;
 	$: currentBidder = $bidStore?.currentBidder ?? -1;

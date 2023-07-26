@@ -1,12 +1,14 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/game"
+	"github.com/quevivasbien/bird-game/utils"
 )
 
 var bidManager = MakeManager[game.BidState]()
@@ -50,10 +52,19 @@ func startBidding(c *fiber.Ctx) error {
 }
 
 func getBidState(c *fiber.Ctx) error {
+	authInfo, err := UnloadTokenCookie(c)
+	if err != nil || (authInfo.Name == "" && !authInfo.Admin) {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
 	gameID := c.Params("gameid")
 	bidState, exists := bidManager.Get(gameID)
 	if !exists {
 		return c.SendStatus(fiber.StatusNotFound)
+	}
+	userIndex := utils.IndexOf(bidState.Players[:], authInfo.Name)
+	if userIndex == -1 {
+		log.Println("Tried to get game state for a player not in the game")
+		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	return c.JSON(bidState)
 }
@@ -88,7 +99,11 @@ func submitBid(c *fiber.Ctx) error {
 
 	bidManager.Put(bidState)
 	if bidState.Done {
-		bidManager.Delete(gameID, ContinueCode)
+		err = endBidding(bidState)
+		if err != nil {
+			log.Println("When ending bidding:", err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
 	}
 
 	// for testing
@@ -100,12 +115,25 @@ func submitBid(c *fiber.Ctx) error {
 				bidManager.Put(bidState)
 			}
 			if bidState.Done {
-				bidManager.Delete(gameID, ContinueCode)
+				endBidding(bidState)
 			}
 		}()
 	}
 
 	return c.SendStatus(fiber.StatusOK)
+}
+
+func endBidding(bidState game.BidState) error {
+	if _, exists := bidManager.Get(bidState.ID); !exists {
+		return fmt.Errorf("Tried to initialize a game from a BidState not in the bid manager")
+	}
+	game, err := bidState.InitGame()
+	if err != nil {
+		return fmt.Errorf("Error when initializing game from BidState: %v", err)
+	}
+	gameManager.Put(game)
+	bidManager.Delete(bidState.ID, ContinueCode)
+	return nil
 }
 
 func subscribeToBids(c *fiber.Ctx) error {
@@ -123,7 +151,7 @@ func subscribeToBids(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	_, err = bidManager.Subscribe(gameID, authInfo.Name, c)
+	err = bidManager.Subscribe(gameID, authInfo.Name, c)
 	if err != nil {
 		log.Println("When subscribing to bid stream:", err)
 		return c.SendStatus(fiber.StatusInternalServerError)

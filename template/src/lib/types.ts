@@ -20,8 +20,7 @@ export interface BidInfo {
     id: string;
     done: boolean;
     players: string[];
-    hands: Card[][];
-    widow: Card[];
+    hand: Card[];
     passed: boolean[];
     currentBidder: number;
     bid: number;

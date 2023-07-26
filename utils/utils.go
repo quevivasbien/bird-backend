@@ -24,6 +24,8 @@ func Remove[T any](list []T, index int) []T {
 	return list
 }
 
-type HasID interface {
+type Manageable interface {
 	GetID() string
+	GetPlayers() []string
+	Visible(playerIndex int) interface{}
 }

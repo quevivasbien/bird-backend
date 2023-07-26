@@ -18,12 +18,12 @@ const (
 	EmptyCode
 )
 
-type Subscription[T utils.HasID] struct {
+type Subscription[T utils.Manageable] struct {
 	data  chan T
 	close chan CloseCode
 }
 
-type Manager[T utils.HasID] struct {
+type Manager[T utils.Manageable] struct {
 	items map[string]T
 	subs  map[string](map[string]Subscription[T])
 }
@@ -58,17 +58,13 @@ func (m Manager[T]) Delete(id string, code CloseCode) {
 	delete(m.subs, id)
 }
 
-func (m Manager[T]) Subscribe(id string, subscriber string, c *fiber.Ctx) (Subscription[T], error) {
+func (m Manager[T]) Subscribe(id string, subscriber string, c *fiber.Ctx) error {
 	_, exists := m.subs[id]
 	if !exists {
-		return Subscription[T]{}, fmt.Errorf("Attempted to subscribe to an item, %s, that doesn't exist", id)
+		return fmt.Errorf("Attempted to subscribe to an item, %s, that doesn't exist", id)
 	}
 	sub := Subscription[T]{make(chan T), make(chan CloseCode)}
 	m.subs[id][subscriber] = sub
-
-	if c == nil {
-		return sub, nil
-	}
 
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
@@ -79,7 +75,12 @@ func (m Manager[T]) Subscribe(id string, subscriber string, c *fiber.Ctx) (Subsc
 		for {
 			select {
 			case item := <-sub.data:
-				data, err := json.Marshal(item)
+				playerIndex := utils.IndexOf(item.GetPlayers(), subscriber)
+				if playerIndex == -1 {
+					log.Println("When processing stream, subscriber is not in subscribed item")
+					break
+				}
+				data, err := json.Marshal(item.Visible(playerIndex))
 				if err != nil {
 					log.Println("Got error when processing stream notification:", err)
 					break
@@ -105,7 +106,7 @@ func (m Manager[T]) Subscribe(id string, subscriber string, c *fiber.Ctx) (Subsc
 		}
 	}))
 
-	return sub, nil
+	return nil
 }
 
 func (m Manager[T]) Unsubscribe(id string, subscriber string) {
@@ -116,7 +117,7 @@ func (m Manager[T]) Unsubscribe(id string, subscriber string) {
 	delete(m.subs[id], subscriber)
 }
 
-func MakeManager[T utils.HasID]() Manager[T] {
+func MakeManager[T utils.Manageable]() Manager[T] {
 	return Manager[T]{
 		items: make(map[string]T),
 		subs:  make(map[string]map[string]Subscription[T]),

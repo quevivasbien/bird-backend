@@ -51,7 +51,7 @@ func subscribeToLobby(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	_, err = lobbyManager.Subscribe(lobbyID, authInfo.Name, c)
+	err = lobbyManager.Subscribe(lobbyID, authInfo.Name, c)
 	if err != nil {
 		log.Println("When subscribing to lobby stream:", err)
 		return c.SendStatus(fiber.StatusInternalServerError)
@@ -134,7 +134,7 @@ func leaveLobby(c *fiber.Ctx) error {
 		}
 	}
 	if lobby.Host == "" {
-		lobbyManager.Delete(lobbyID, 1)
+		lobbyManager.Delete(lobbyID, EmptyCode)
 		return c.SendStatus(fiber.StatusOK)
 	} else {
 		lobbyManager.Unsubscribe(lobbyID, userInfo.Name)

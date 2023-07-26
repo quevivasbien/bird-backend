@@ -23,6 +23,22 @@ func (b BidState) GetID() string {
 	return b.ID
 }
 
+func (b BidState) Visible(player int) interface{} {
+	return VisibleBidState{
+		ID:            b.ID,
+		Done:          b.Done,
+		Players:       b.Players,
+		Hand:          b.Hands[player],
+		Passed:        b.Passed,
+		CurrentBidder: b.CurrentBidder,
+		Bid:           b.Bid,
+	}
+}
+
+func (b BidState) GetPlayers() []string {
+	return b.Players[:]
+}
+
 func deal() ([4][]Card, [5]Card) {
 	// get all cards
 	allCards := []Card{Bird}
@@ -127,4 +143,29 @@ func (b *BidState) ProcessBid(player string, amt int) error {
 	b.AdvanceBidder()
 
 	return nil
+}
+
+func (b BidState) InitGame() (GameState, error) {
+	if !b.Done {
+		return GameState{}, fmt.Errorf("Cannot init game before bidding is done")
+	}
+	return GameState{
+		ID:            b.ID,
+		Players:       b.Players,
+		Hands:         b.Hands,
+		Widow:         b.Widow,
+		CurrentPlayer: b.CurrentBidder,
+		Bid:           b.Bid,
+		BidWinner:     b.CurrentBidder,
+	}, nil
+}
+
+type VisibleBidState struct {
+	ID            string    `json:"id"`
+	Done          bool      `json:"done"`
+	Players       [4]string `json:"players"`
+	Hand          []Card    `json:"hand"`
+	Passed        [4]bool   `json:"passed"`
+	CurrentBidder int       `json:"currentBidder"`
+	Bid           int       `json:"bid"`
 }

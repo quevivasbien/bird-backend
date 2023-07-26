@@ -70,6 +70,23 @@ func (g GameState) GetID() string {
 	return g.ID
 }
 
+func (g GameState) Visible(player int) interface{} {
+	return VisibleGameState{
+		ID:            g.ID,
+		Hand:          g.Hands[player],
+		Table:         g.Table,
+		CurrentPlayer: g.CurrentPlayer,
+		Trump:         g.Trump,
+		Bid:           g.Bid,
+		BidWinner:     g.BidWinner,
+		Done:          g.Done,
+	}
+}
+
+func (g GameState) GetPlayers() []string {
+	return g.Players[:]
+}
+
 func (g GameState) HasPlayer(player string) bool {
 	return utils.Contains(g.Players[:], player)
 }
@@ -171,6 +188,7 @@ func (g *GameState) Score() (int, int, error) {
 
 // state of the game visible to a player during the game
 type VisibleGameState struct {
+	ID            string `json:"id"`
 	Hand          []Card `json:"hand"`
 	Table         []Card `json:"table"`
 	CurrentPlayer int    `json:"currentPlayer"`
@@ -178,16 +196,4 @@ type VisibleGameState struct {
 	Bid           int    `json:"bid"`
 	BidWinner     int    `json:"bidWinner"`
 	Done          bool   `json:"done"`
-}
-
-func (g GameState) Visible(player int) VisibleGameState {
-	return VisibleGameState{
-		Hand:          g.Hands[player],
-		Table:         g.Table,
-		CurrentPlayer: g.CurrentPlayer,
-		Trump:         g.Trump,
-		Bid:           g.Bid,
-		BidWinner:     g.BidWinner,
-		Done:          g.Done,
-	}
 }
