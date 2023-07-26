@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/quevivasbien/bird-game/game"
+	"github.com/quevivasbien/bird-game/utils"
 	"github.com/valyala/fasthttp"
 )
 
@@ -18,12 +18,12 @@ const (
 	EmptyCode
 )
 
-type Subscription[T game.HasID] struct {
+type Subscription[T utils.HasID] struct {
 	data  chan T
 	close chan CloseCode
 }
 
-type Manager[T game.HasID] struct {
+type Manager[T utils.HasID] struct {
 	items map[string]T
 	subs  map[string](map[string]Subscription[T])
 }
@@ -116,7 +116,7 @@ func (m Manager[T]) Unsubscribe(id string, subscriber string) {
 	delete(m.subs[id], subscriber)
 }
 
-func MakeManager[T game.HasID]() Manager[T] {
+func MakeManager[T utils.HasID]() Manager[T] {
 	return Manager[T]{
 		items: make(map[string]T),
 		subs:  make(map[string]map[string]Subscription[T]),

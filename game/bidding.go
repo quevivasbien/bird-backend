@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/quevivasbien/bird-game/utils"
 )
 
 type BidState struct {
@@ -57,7 +59,7 @@ func InitializeBidState(id string, players [4]string) BidState {
 }
 
 func (b BidState) HasPlayer(player string) bool {
-	return hasPlayer(b.Players, player)
+	return utils.Contains(b.Players[:], player)
 }
 
 func (b BidState) Winner() int {

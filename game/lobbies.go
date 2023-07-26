@@ -1,5 +1,7 @@
 package game
 
+import "github.com/quevivasbien/bird-game/utils"
+
 type Lobby struct {
 	ID      string    `json:"id"`
 	Host    string    `json:"host"`
@@ -19,5 +21,5 @@ func (l Lobby) GetID() string {
 }
 
 func (l Lobby) HasPlayer(player string) bool {
-	return hasPlayer(l.Players, player)
+	return utils.Contains(l.Players[:], player)
 }
