@@ -16,6 +16,25 @@ export function load(event: LoadEvent) {
         return sse;
     };
 
+    const getWidow = async () => {
+        const gameInfo = get(gameStore);
+        if (gameInfo === undefined) {
+            return;
+        }
+        const response = await fetch(
+            `${base}/api/games/${gameInfo.id}/widow`,
+            {
+                method: "GET",
+            },
+        );
+        if (!response.ok) {
+            console.log("Problem getting widow; status =" + response.status);
+            return;
+        }
+        const data = await response.json();
+        return data;
+    };
+
     const startRound = async (trump: number, toWidow: Card[], fromWidow: Card[]) => {
         const gameInfo = get(gameStore);
         if (gameInfo === undefined) {
@@ -73,6 +92,7 @@ export function load(event: LoadEvent) {
 
     return {
         subscribeToGame,
+        getWidow,
         startRound,
         getScore,
         playCard,

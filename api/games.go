@@ -28,6 +28,25 @@ func getGameState(c *fiber.Ctx) error {
 	return c.JSON(game.Visible(userIndex))
 }
 
+func getWidow(c *fiber.Ctx) error {
+	authInfo, err := UnloadTokenCookie(c)
+	if err != nil {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	gameID := c.Params("gameid")
+	game, exists := gameManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	if authInfo.Name != game.Players[game.BidWinner] && !authInfo.Admin {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	return c.JSON(game.Widow)
+}
+
 // set trump and exchange cards with widow
 func startRound(c *fiber.Ctx) error {
 	_, err := UnloadTokenCookie(c)
@@ -128,6 +147,7 @@ func subscribeToGame(c *fiber.Ctx) error {
 
 func setupGames(r fiber.Router) {
 	r.Get("/:gameid", getGameState)
+	r.Get("/:gameid/widow", getWidow)
 	r.Post("/:gameid/start", startRound)
 	r.Post("/:gameid/play", playCard)
 	r.Get("/:gameid/score", getScore)

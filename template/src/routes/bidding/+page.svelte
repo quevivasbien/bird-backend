@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import CardView from '$lib/components/CardView.svelte';
+	import Hand from '$lib/components/Hand.svelte';
 	import { bidStore, userStore } from '$lib/stores.js';
 	import type { BidInfo } from '$lib/types.js';
 	import { onDestroy, onMount } from 'svelte';
@@ -23,9 +23,8 @@
 			receiveGameState().then(([ok, status]) => {
 				if (ok) {
 					setTimeout(() => goto(`${base}/game`), 2000);
-				}
-				else {
-					console.log("Problem getting game info, status = " + status);
+				} else {
+					console.log('Problem getting game info, status = ' + status);
 				}
 			});
 		});
@@ -37,7 +36,7 @@
 
 	let biddingDone = false;
 
-	const yourIndex = $bidStore?.players.indexOf($userStore?.name ?? '') ?? 0;
+	const yourIndex = $bidStore?.players.indexOf($userStore?.name ?? '') ?? -1;
 	const yourHand = $bidStore?.hand ?? [];
 
 	$: currentBid = $bidStore?.bid ?? 0;
@@ -108,7 +107,4 @@
 	{/if}
 </div>
 
-<h2>Your hand</h2>
-{#each yourHand as card}
-	<CardView {card} />
-{/each}
+<Hand cards={yourHand} />
