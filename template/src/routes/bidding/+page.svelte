@@ -14,10 +14,15 @@
 
 	onMount(() => {
 		sse = subscribeToBids();
-		sse?.addEventListener('update', (e) => {
+		if (sse === undefined) {
+			// no valid bidstate; navigate home
+			goto(`${base}/`);
+			return;
+		}
+		sse.addEventListener('update', (e) => {
 			$bidStore = JSON.parse(e.data);
 		});
-		sse?.addEventListener('continue', (e) => {
+		sse.addEventListener('continue', (e) => {
 			console.log('winner is ', $bidStore?.currentBidder);
 			biddingDone = true;
 			receiveGameState().then(([ok, status]) => {

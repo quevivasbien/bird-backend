@@ -12,10 +12,15 @@
 
 	onMount(() => {
 		sse = subscribeToLobby();
-		sse?.addEventListener("update", (e) => {
+        if (sse === undefined) {
+            // no valid lobby info; navigate home
+            goto(`${base}/`);
+            return;
+        }
+		sse.addEventListener("update", (e) => {
             $lobbyStore = JSON.parse(e.data);
         });
-		sse?.addEventListener("continue", (e) => {
+		sse.addEventListener("continue", (e) => {
 			receiveBidState().then(([ok, status]) => {
 				if (ok) {
 					goto(`${base}/bidding`);

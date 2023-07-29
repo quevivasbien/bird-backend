@@ -1,6 +1,5 @@
 import { base } from "$app/paths";
 import { bidStore, gameStore } from "$lib/stores";
-import type { GameInfo } from "$lib/types";
 import type { LoadEvent } from "@sveltejs/kit";
 import { get } from "svelte/store";
 
@@ -46,7 +45,8 @@ export function load(event: LoadEvent) {
             },
         );
         if (response.ok) {
-            const data: GameInfo = await response.json();
+            const data = await response.json();
+            data.table = data.table ?? [];
             gameStore.set(data);
         }
         return [response.ok, response.status];

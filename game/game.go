@@ -73,6 +73,7 @@ func (g GameState) GetID() string {
 func (g GameState) Visible(player int) interface{} {
 	return VisibleGameState{
 		ID:            g.ID,
+		Players:       g.Players,
 		Hand:          g.Hands[player],
 		Table:         g.Table,
 		CurrentPlayer: g.CurrentPlayer,
@@ -146,6 +147,7 @@ func (g *GameState) finishPlay() error {
 			bestCard = card
 		}
 	}
+	g.CurrentPlayer = winner
 	// remove cards from table
 	if winner%2 == 0 {
 		g.Discarded[0] = append(g.Discarded[0], g.Table...)
@@ -188,12 +190,13 @@ func (g *GameState) Score() (int, int, error) {
 
 // state of the game visible to a player during the game
 type VisibleGameState struct {
-	ID            string `json:"id"`
-	Hand          []Card `json:"hand"`
-	Table         []Card `json:"table"`
-	CurrentPlayer int    `json:"currentPlayer"`
-	Trump         Color  `json:"trump"`
-	Bid           int    `json:"bid"`
-	BidWinner     int    `json:"bidWinner"`
-	Done          bool   `json:"done"`
+	ID            string    `json:"id"`
+	Players       [4]string `json:"players"`
+	Hand          []Card    `json:"hand"`
+	Table         []Card    `json:"table"`
+	CurrentPlayer int       `json:"currentPlayer"`
+	Trump         Color     `json:"trump"`
+	Bid           int       `json:"bid"`
+	BidWinner     int       `json:"bidWinner"`
+	Done          bool      `json:"done"`
 }

@@ -33,7 +33,7 @@ func (m Manager[T]) Get(id string) (T, bool) {
 	return item, exists
 }
 
-func (m Manager[T]) Put(item T) {
+func (m *Manager[T]) Put(item T) {
 	id := item.GetID()
 	m.items[id] = item
 	subs, exists := m.subs[id]
@@ -46,7 +46,7 @@ func (m Manager[T]) Put(item T) {
 	}
 }
 
-func (m Manager[T]) Delete(id string, code CloseCode) {
+func (m *Manager[T]) Delete(id string, code CloseCode) {
 	delete(m.items, id)
 	subs, exists := m.subs[id]
 	if !exists {
@@ -58,7 +58,7 @@ func (m Manager[T]) Delete(id string, code CloseCode) {
 	delete(m.subs, id)
 }
 
-func (m Manager[T]) Subscribe(id string, subscriber string, c *fiber.Ctx) error {
+func (m *Manager[T]) Subscribe(id string, subscriber string, c *fiber.Ctx) error {
 	_, exists := m.subs[id]
 	if !exists {
 		return fmt.Errorf("Attempted to subscribe to an item, %s, that doesn't exist", id)
@@ -109,7 +109,7 @@ func (m Manager[T]) Subscribe(id string, subscriber string, c *fiber.Ctx) error 
 	return nil
 }
 
-func (m Manager[T]) Unsubscribe(id string, subscriber string) {
+func (m *Manager[T]) Unsubscribe(id string, subscriber string) {
 	_, exists := m.subs[id]
 	if !exists {
 		return
