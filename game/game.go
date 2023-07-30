@@ -129,6 +129,7 @@ func (g *GameState) PlayCard(player string, card Card) error {
 	if len(g.Table) == 4 {
 		return g.finishPlay()
 	}
+	g.CurrentPlayer = (g.CurrentPlayer + 1 + 4) % 4
 	return nil
 }
 

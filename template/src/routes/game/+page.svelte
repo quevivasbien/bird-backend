@@ -25,6 +25,7 @@
 		sse.addEventListener('update', (e) => {
 			const data = JSON.parse(e.data);
 			data.table = data.table ?? [];
+			console.log("data update:", data);
 			$gameStore = data;
 		});
 		sse.addEventListener('continue', (e) => {
@@ -44,18 +45,6 @@
 	$: yourHand = $gameStore?.hand ?? [];
 
 	let trumpSelection: number = 0;
-
-	let leadingPlayer: number = -1;
-	$: leadingPlayer = getLeadingPlayer($gameStore);
-	function getLeadingPlayer(gameInfo: GameInfo | undefined) {
-		if (gameInfo === undefined) {
-			return -1;
-		}
-		if (gameInfo.table.length === 0) {
-			return gameInfo.currentPlayer;
-		}
-		return leadingPlayer;
-	}
 
 	$: currentPlayer = $gameStore?.currentPlayer ?? -1;
 
@@ -148,13 +137,15 @@
 	{/if}
 {:else}
 	<div>{trumpColor} is trump.</div>
-	<Table cards={$gameStore?.table ?? []} {leadingPlayer} />
+	<Table />
 	{#if currentPlayer === yourIndex}
+		<div>Your turn to play</div>
 		<form on:submit|preventDefault={submitSelectCard}>
 			<CardSelect cards={yourHand} bind:selection={selectedCard} />
 			<button type="submit">Submit</button>
 		</form>
 	{:else}
+		<div>Player {currentPlayer + 1}'s turn to play</div>
 		<Hand cards={yourHand} />
 	{/if}
 {/if}

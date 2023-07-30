@@ -1,9 +1,21 @@
 <script lang="ts">
-	import type { Card } from "$lib/types";
-	import CardView from "./CardView.svelte";
+	import { gameStore } from "$lib/stores";
+	import type { Card, GameInfo } from "$lib/types";
+	import CardView from "$lib/components/CardView.svelte";
 
-    export let cards: Card[];
-    export let leadingPlayer: number;
+    $: cards = $gameStore?.table ?? [];
+
+    let leadingPlayer: number = -1;
+	$: leadingPlayer = getLeadingPlayer($gameStore);
+	function getLeadingPlayer(gameInfo: GameInfo | undefined) {
+		if (gameInfo === undefined) {
+			return -1;
+		}
+		if (gameInfo.table.length === 0) {
+			return gameInfo.currentPlayer;
+		}
+		return leadingPlayer;
+	}
 
     let sortedCards: (Card | null)[] = [null, null, null, null];
     for (let i = 0; i < cards.length; i++) {
