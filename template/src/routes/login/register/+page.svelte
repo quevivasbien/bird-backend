@@ -36,17 +36,17 @@
 <form on:submit|preventDefault={submitForm}>
 	<label>
 		<div>Username</div>
-		<input type="text" bind:value={name} />
+		<input type="text" class="mb-4" bind:value={name} />
 	</label>
 	<label>
 		<div>Password</div>
-		<input type="password" bind:value={password} />
+		<input type="password" class="mb-4" bind:value={password} />
 	</label>
 	<label>
 		<div>Verify password</div>
-		<input type="password" bind:value={passwordVerify} />
+		<input type="password" class="mb-4" bind:value={passwordVerify} />
 	</label>
-	<button type="submit">Register</button>
+	<button class="ml-2" type="submit">Register</button>
 </form>
 {#if statusText}
 	<div>{statusText}</div>

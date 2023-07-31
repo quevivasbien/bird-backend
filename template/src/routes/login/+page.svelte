@@ -31,13 +31,13 @@
 <form on:submit|preventDefault={submitForm}>
 	<label>
 		<div>Username</div>
-		<input type="text" bind:value={name} />
+		<input type="text" class="mb-4" bind:value={name} />
 	</label>
 	<label>
 		<div>Password</div>
-		<input type="password" bind:value={password} />
+		<input type="password" class="mb-4" bind:value={password} />
 	</label>
-	<button type="submit">Login</button>
+	<button class="ml-2" type="submit">Login</button>
 </form>
 {#if statusText}
 	<div>{statusText}</div>

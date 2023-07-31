@@ -1,43 +1,32 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import Dropdown from '$lib/components/Dropdown.svelte';
 	import Hand from '$lib/components/Hand.svelte';
-	import { bidStore, userStore } from '$lib/stores.js';
-	import type { BidInfo } from '$lib/types.js';
+	import { bidStore, lobbyStore, userStore } from '$lib/stores';
+	import type { BidInfo } from '$lib/types';
 	import { onDestroy, onMount } from 'svelte';
 
-	export let data;
-
-	const { subscribeToBids, submitBid, receiveGameState } = data;
-
-	let sse: EventSource | undefined;
-
-	onMount(() => {
-		sse = subscribeToBids();
-		if (sse === undefined) {
-			// no valid bidstate; navigate home
-			goto(`${base}/`);
-			return;
-		}
-		sse.addEventListener('update', (e) => {
-			$bidStore = JSON.parse(e.data);
-		});
-		sse.addEventListener('continue', (e) => {
-			console.log('winner is ', $bidStore?.currentBidder);
-			biddingDone = true;
-			receiveGameState().then(([ok, status]) => {
-				if (ok) {
-					setTimeout(() => goto(`${base}/game`), 2000);
-				} else {
-					console.log('Problem getting game info, status = ' + status);
-				}
-			});
-		});
-	});
-
-	onDestroy(() => {
-		sse?.close();
-	});
+    $userStore = {
+        name: "admin",
+        admin: true,
+        expireTime: 0,
+    };
+    $lobbyStore = {
+        id: "test",
+        host: $userStore?.name ?? "",
+        players: [$userStore?.name ?? "", "dummy1", "dummy2", "dummy3"],
+        started: false,
+    };
+    $bidStore = {
+        id: "admin",
+        done: false,
+        players: ["admin", "dummy1", "dummy2", "dummy3"],
+        hand: [{color: 0, value: 0}, {color: 1, value: 1}, {color: 2, value: 2}],
+        passed: [false, false, false, false],
+        currentBidder: 0,
+        bid: 0,
+    };
 
 	let biddingDone = false;
 
@@ -72,11 +61,7 @@
 		if (b === undefined) {
 			b = yourBid;
 		}
-		submitBid(b).then(([ok, status]) => {
-			if (!ok) {
-				console.log('Problem submitting bid; status = ', status);
-			}
-		});
+		
 	}
 
 	function pass() {

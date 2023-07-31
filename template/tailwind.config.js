@@ -1,8 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["*/src/**/*.{html,js,svelte,ts}"],
+  content: ["./src/**/*.{html,js,svelte,ts}"],
   theme: {
-    extend: {},
+    extend: {
+      "fontFamily": {
+        "sans": ["Rubik", "sans-serif"],
+        "cursive": ["Gloria Hallelujah", "cursive"],
+      }
+    },
   },
   plugins: [],
 }

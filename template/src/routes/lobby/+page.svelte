@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import Dropdown from '$lib/components/Dropdown.svelte';
 	import { lobbyStore, userStore } from '$lib/stores';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -57,14 +58,20 @@
 		}
 	}
 
-	function movePlayerUp(i: number) {
-		const newPos = (i - 1 + 4) % 4;
-		swap(i, newPos);
+	function switchPlayers(i: number, j: number) {
+		if (j === i) {
+			return;
+		}
+		swap(i, j);
 	}
 
-	function movePlayerDown(i: number) {
-		const newPos = (i + 1 + 4) % 4;
-		swap(i, newPos);
+	function itemsForPlayer(i: number) {
+		return [0, 1, 2, 3]
+			.filter((j) => j !== i)
+			.map((j) => { return {
+				'action': () => switchPlayers(i, j),
+				'label': `Player ${j + 1}`,
+			}});
 	}
 
 	$: readyToStart = $lobbyStore?.players.reduce((acc, x) => acc && x !== '', true) ?? false;
@@ -77,26 +84,27 @@
 	}
 </script>
 
-<div>
-	<div>Players</div>
-	{#each players as player, i}
-		{#if i === 0}
-			<h2>Team 1</h2>
-		{:else if i === 2}
-			<h2>Team 2</h2>
-		{/if}
-		<div>
-			<div>
-				{i + 1}. {player || 'Empty'}{#if player === host}&ThickSpace;(host){/if}
-			</div>
-			{#if amHost}
-				<button on:click={() => movePlayerUp(i)}>Up</button>
-				<button on:click={() => movePlayerDown(i)}>Down</button>
-			{/if}
-		</div>
-	{/each}
+<h1 class="text-3xl">Lobby for game <span class="italic">{$lobbyStore?.id ?? ''}</span></h1>
+<div class="max-w-sm m-8">
+    {#each players as player, i}
+        {#if i === 0}
+            <h3 class="text-xl font-bold">Team 1</h3>
+        {:else if i === 2}
+            <h3 class="text-xl font-bold">Team 2</h3>
+        {/if}
+        <div class="flex flex-row ml-4 my-4 items-center space-x-8">
+            <div class="flex flex-grow justify-start">
+                {i + 1}. {player || 'Empty'}{#if player === host}&ThickSpace;(host){/if}
+            </div>
+            {#if amHost}
+                <div class="flex justify-end">
+                    <Dropdown title="Swap position" items={itemsForPlayer(i)} />
+                </div>
+            {/if}
+        </div>
+    {/each}
+    {#if amHost}
+        <div class="pt-4 border-t" />
+        <button class="p-2 drop-shadow-lg rounded text-white bg-violet-800 hover:bg-violet-900 disabled:bg-gray-400" on:click={attemptStartBidding} disabled={!readyToStart}>Start game</button>
+    {/if}
 </div>
-
-{#if amHost}
-	<button on:click={attemptStartBidding} disabled={!readyToStart}>Start game</button>
-{/if}

@@ -51,36 +51,35 @@
 		});
 	}
 </script>
-
-<h1>Bird</h1>
-
 {#if $userStore !== undefined}
-	<div>
-		<h2>Create new game</h2>
-		<form on:submit|preventDefault={attemptCreateLobby}>
-			<label>
-				<span>Game name</span>
-				<input type="text" bind:value={newGameID} />
+	<div class="mb-8">
+		<h2 class="text-3xl">Create new game</h2>
+		<form class="flex space-x-4" on:submit|preventDefault={attemptCreateLobby}>
+			<label class="flex flex-col">
+				<div class="flex">Game name</div>
+				<input class="flex" type="text" bind:value={newGameID} />
 			</label>
-			<button type="submit">Create</button>
+			<button class="h-12 w-24 self-end" type="submit">Create</button>
 		</form>
 		{#if createGameStatusText}
-			<div>{createGameStatusText}</div>
+			<div class="text-red-800 m-1">{createGameStatusText}</div>
 		{/if}
 	</div>
-	<h2>Join game</h2>
-	<form on:submit|preventDefault={attemptJoinLobby}>
-		<label>
-			<span>Game name</span>
-			<input type="text" bind:value={joinGameID} />
-		</label>
-		<button type="submit">Join</button>
-	</form>
-	{#if joinGameStatusText}
-		<div>{joinGameStatusText}</div>
-	{/if}
+	<div class="mb-8">
+		<h2 class="text-3xl">Join game</h2>
+		<form class="flex space-x-4" on:submit|preventDefault={attemptJoinLobby}>
+			<label class="flex flex-col">
+				<div class="flex">Game name</div>
+				<input class="flex" type="text" bind:value={joinGameID} />
+			</label>
+			<button class="h-12 w-24 self-end" type="submit">Join</button>
+		</form>
+		{#if joinGameStatusText}
+			<div class="text-red-800 m-1">{joinGameStatusText}</div>
+		{/if}
+	</div>
 {:else}
-	<div>
-		<a href={base + '/login'}>Log in</a> to get started
+	<div class="text-center">
+		<a class="text-purple-900 hover:underline" href={base + '/login'}>Log in</a> to get started
 	</div>
 {/if}
