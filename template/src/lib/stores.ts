@@ -8,3 +8,5 @@ export const lobbyStore = writable<LobbyInfo | undefined>(undefined);
 export const bidStore = writable<BidInfo | undefined>(undefined);
 
 export const gameStore = writable<GameInfo | undefined>(undefined);
+
+export const handSort = writable<boolean | null>(null);

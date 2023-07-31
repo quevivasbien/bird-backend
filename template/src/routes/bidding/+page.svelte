@@ -108,7 +108,7 @@
 			</div>
 		{/if}
 	{:else}
-		<div>
+		<div class="text-2xl">
 			Player {currentBidder + 1} won the bid for {currentBid}!
 		</div>
 	{/if}

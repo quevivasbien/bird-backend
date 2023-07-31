@@ -22,7 +22,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Rubik:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 </svelte:head>
 
-<div class="flex flex-row sm:mx-auto mb-4 max-w-3xl px-8 py-4 border-x border-b rounded sticky top-0 z-10">
+<div class="flex flex-row sm:mx-auto mb-4 max-w-3xl px-8 py-4 border-x border-b rounded sticky top-0 z-10 bg-white">
 	<div class="flex flex-grow justify-start items-center space-x-4">
 		<a class="text-4xl font-cursive" style="text-decoration: none !important;" href={base + '/'}>Bird</a>
 		<a class="font-bold" href={base + '/'}>Home</a>

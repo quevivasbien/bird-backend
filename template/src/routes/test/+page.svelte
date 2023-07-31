@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import CardSelect from '$lib/components/CardSelect.svelte';
 	import Dropdown from '$lib/components/Dropdown.svelte';
 	import Hand from '$lib/components/Hand.svelte';
-	import { bidStore, lobbyStore, userStore } from '$lib/stores';
-	import type { BidInfo } from '$lib/types';
+	import Table from '$lib/components/Table.svelte';
+	import WidowExchange from '$lib/components/WidowExchange.svelte';
+	import { bidStore, gameStore, lobbyStore, userStore } from '$lib/stores';
+	import type { BidInfo, Card, GameInfo } from '$lib/types';
 	import { onDestroy, onMount } from 'svelte';
-
+	
     $userStore = {
         name: "admin",
         admin: true,
@@ -14,89 +17,160 @@
     };
     $lobbyStore = {
         id: "test",
-        host: $userStore?.name ?? "",
-        players: [$userStore?.name ?? "", "dummy1", "dummy2", "dummy3"],
+        host: "admin",
+        players: ["admin", "dummy1", "dummy2", "dummy3"],
         started: false,
     };
     $bidStore = {
-        id: "admin",
+        id: "test",
         done: false,
         players: ["admin", "dummy1", "dummy2", "dummy3"],
-        hand: [{color: 0, value: 0}, {color: 1, value: 1}, {color: 2, value: 2}],
+        hand: [{color: 0, value: 0}, {color: 1, value: 1}, {color: 2, value: 2}, {color: 1, value: 12}],
         passed: [false, false, false, false],
         currentBidder: 0,
         bid: 0,
     };
+    $gameStore = {
+        id: "test",
+        done: false,
+        players: ["admin", "dummy1", "dummy2", "dummy3"],
+        hand: [{color: 0, value: 0}, {color: 1, value: 1}, {color: 2, value: 2}, {color: 1, value: 12}],
+        table: [],
+        currentPlayer: 0,
+        trump: 0,
+        bid: 100,
+        bidWinner: 0,
+    };
 
-	let biddingDone = false;
+    async function getWidow() {
+        return [{color: 1, value: 2}, {color: 1, value: 8}, {color: 2, value: 3}, {color: 4, value: 13}];
+    }
 
-	const yourIndex = $bidStore?.players.indexOf($userStore?.name ?? '') ?? -1;
-	const yourHand = $bidStore?.hand ?? [];
+    async function startRound(trumpSelection: number, toWidow: Card[], fromWidow: Card[]) {
+        if ($gameStore === undefined) {
+            return;
+        }
+        $gameStore.trump = trumpSelection;
+    }
 
-	$: currentBid = $bidStore?.bid ?? 0;
-	$: currentBidder = $bidStore?.currentBidder ?? -1;
-	$: console.log('currentBidder:', currentBidder);
+	const yourIndex = $gameStore?.players.indexOf($userStore?.name ?? '') ?? -1;
+	const tookBid = $gameStore?.bidWinner === yourIndex;
 
-	$: bidLeader = getBidLeader($bidStore);
+	$: trumpSelected = $gameStore?.trump ?? 0 != 0;
+	$: yourHand = $gameStore?.hand ?? [];
 
-	function getBidLeader(bidState: BidInfo | undefined) {
-		if (bidState === undefined) {
-			return -1;
+	let trumpSelection: number = 0;
+
+	$: currentPlayer = $gameStore?.currentPlayer ?? -1;
+
+	let trumpColor = '';
+	$: if (trumpSelected) {
+		trumpColor = getTrumpColor($gameStore);
+	}
+	function getTrumpColor(gameInfo: GameInfo | undefined) {
+		if (gameInfo === undefined) {
+			return '';
 		}
-		let leader = (bidState.currentBidder - 1 + 4) % 4;
-		while (bidState.passed[leader]) {
-			leader = (leader - 1 + 4) % 4;
+		const trump = gameInfo.trump;
+		if (trump === 1) {
+			return 'Red';
 		}
-		return leader;
+		if (trump === 2) {
+			return 'Yellow';
+		}
+		if (trump === 3) {
+			return 'Green';
+		}
+		if (trump === 4) {
+			return 'Black';
+		}
+		return '';
 	}
 
-	let yourBid: number;
-	$: updateYourBid(currentBid);
-
-	function updateYourBid(b: number) {
-		yourBid = Math.max(100, b + 5);
+	let toWidow: Card[] = [];
+	let fromWidow: Card[]  = [];
+	let startGameStatus = "";
+	async function submitCreateGame() {
+		// if (toWidow.length !== fromWidow.length) {
+		// 	startGameStatus = "You must take the same number of cards out of your hand as you take out of the widow.";
+		// 	return;
+		// }
+		// if (trumpSelection === 0) {
+		// 	startGameStatus = "You need to choose the trump color.";
+		// 	return;
+		// }
+		// const [ok, status] = await startRound(trumpSelection, toWidow, fromWidow);
+		// if (!ok) {
+		// 	console.log("When trying to start round, got status = " + status);
+		// }
+        await startRound(trumpSelection, toWidow, fromWidow);
 	}
 
-	function attemptSubmitBid(b?: number) {
-		if (b === undefined) {
-			b = yourBid;
+	let selectedCard: Card;
+	async function submitSelectCard() {
+		if ($gameStore === undefined) {return;}
+		if (selectedCard === undefined) {
+			return;
 		}
-		
-	}
-
-	function pass() {
-		attemptSubmitBid(0);
+		$gameStore.table.push(selectedCard);
+		$gameStore.hand = $gameStore.hand.filter((v) => v !== selectedCard);
+		// const [ok, status] = await playCard(selectedCard);
+		// if (!ok) {
+		// 	console.log("When trying to play card, got status = " + status);
+		// }
 	}
 </script>
 
-<h1 class="text-3xl">Bidding</h1>
-
-<div class="mt-8 mb-16">
-	{#if !biddingDone}
-		<div class="text-lg">
-			{#if currentBidder === yourIndex}Your{:else}Player {currentBidder + 1}'s{/if} turn to bid
-		</div>
-		{#if currentBid > 0}
-			<div>Current bid: {currentBid} (Player {bidLeader + 1})</div>
-		{/if}
-		{#if currentBidder === yourIndex}
-			<div class="flex flex-col space-y-4">
-                <div class="flex flex-row space-x-2 items-center">
-                    <button class="p-1 border rounded w-10" type="button" on:click={() => (yourBid -= 5)} disabled={yourBid <= currentBid + 5}>&#8595;</button>
-                    <div class="text-2xl w-16 text-center">{yourBid}</div>
-                    <button class="p-1 border rounded w-10" type="button" on:click={() => (yourBid += 5)}>&#8593;</button>
+{#if !trumpSelected}
+	{#if tookBid}
+    <form on:submit|preventDefault={submitCreateGame}>
+            <h1 class="text-3xl">Choose cards to exchange with widow</h1>
+			{#await getWidow()}
+				loading widow...
+			{:then widow}
+				<WidowExchange widow={widow ?? []} {yourHand} bind:toWidow={toWidow} bind:fromWidow={fromWidow} />
+			{/await}
+            <h1 class="text-3xl">Choose trump color</h1>
+            <div class="flex flex-row space-x-4 items-center m-4">
+                <label>
+                    <input type="radio" bind:group={trumpSelection} value={1} />
+                    <span>Red</span>
+                </label>
+                <label>
+                    <input type="radio" bind:group={trumpSelection} value={2} />
+                    <span>Yellow</span>
+                </label>
+                <label>
+                    <input type="radio" bind:group={trumpSelection} value={3} />
+                    <span>Green</span>
+                </label>
+                <label>
+                    <input type="radio" bind:group={trumpSelection} value={4} />
+                    <span>Black</span>
+                </label>
+                <div class="flex-grow text-center">
+                    <button type="submit" disabled={trumpSelection == 0}>Submit</button>
                 </div>
-                <div class="flex-flex-row">
-                    <button class="p-2 drop-shadow-lg rounded text-white bg-violet-800 hover:bg-violet-900 disabled:bg-gray-400" on:click={() => attemptSubmitBid(yourBid)}>Submit bid</button>
-                    <button class="p-2 drop-shadow-lg rounded text-white bg-violet-800 hover:bg-violet-900 disabled:bg-gray-400" on:click={pass}>Pass</button>
-                </div>
-			</div>
+            </div>
+		</form>
+		{#if startGameStatus}
+			<div>{startGameStatus}</div>
 		{/if}
 	{:else}
-		<div>
-			Player {currentBidder + 1} won the bid for {currentBid}!
-		</div>
+		<div>Waiting for player {($gameStore?.bidWinner ?? -1) + 1} to choose trump color...</div>
+		<Hand cards={yourHand} />
 	{/if}
-</div>
-
-<Hand cards={yourHand} />
+{:else}
+	<div class="text-2xl">{trumpColor} is trump.</div>
+	<Table />
+	{#if currentPlayer === yourIndex}
+		<div class="text-3xl my-4">Your turn</div>
+		<form on:submit|preventDefault={submitSelectCard}>
+			<CardSelect cards={yourHand} bind:selection={selectedCard} />
+			<button type="submit">Play card</button>
+		</form>
+	{:else}
+		<div class="text-3xl my-4">Player {currentPlayer + 1}'s turn</div>
+		<Hand cards={yourHand} />
+	{/if}
+{/if}
