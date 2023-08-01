@@ -46,7 +46,6 @@ export function load(event: LoadEvent) {
         );
         if (response.ok) {
             const data = await response.json();
-            data.table = data.table ?? [];
             gameStore.set(data);
         }
         return [response.ok, response.status];

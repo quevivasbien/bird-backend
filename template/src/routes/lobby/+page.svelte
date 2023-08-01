@@ -74,8 +74,6 @@
 			}});
 	}
 
-	$: readyToStart = $lobbyStore?.players.reduce((acc, x) => acc && x !== '', true) ?? false;
-
 	async function attemptStartBidding() {
 		const [ok, status] = await startBidding();
         if (!ok) {
@@ -94,7 +92,7 @@
         {/if}
         <div class="flex flex-row ml-4 my-4 items-center space-x-8">
             <div class="flex flex-grow justify-start">
-                {i + 1}. {player || 'Empty'}{#if player === host}&ThickSpace;(host){/if}
+                {i + 1}. {player || 'Empty (AI)'}{#if player === host}&ThickSpace;(host){/if}
             </div>
             {#if amHost}
                 <div class="flex justify-end">
@@ -105,6 +103,6 @@
     {/each}
     {#if amHost}
         <div class="pt-4 border-t" />
-        <button class="p-2 drop-shadow-lg rounded text-white bg-violet-800 hover:bg-violet-900 disabled:bg-gray-400" on:click={attemptStartBidding} disabled={!readyToStart}>Start game</button>
+        <button class="p-2 drop-shadow-lg rounded text-white bg-violet-800 hover:bg-violet-900 disabled:bg-gray-400" on:click={attemptStartBidding}>Start game</button>
     {/if}
 </div>

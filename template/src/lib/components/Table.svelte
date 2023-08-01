@@ -2,9 +2,9 @@
 	import { gameStore } from "$lib/stores";
 	import type { Card, GameInfo } from "$lib/types";
 	import CardView from "$lib/components/CardView.svelte";
-	import { onMount } from "svelte";
 
     $: cards = $gameStore?.table ?? [];
+    $: console.log(cards);
 
     let leadingPlayer: number = -1;
 	$: leadingPlayer = getLeadingPlayer($gameStore);

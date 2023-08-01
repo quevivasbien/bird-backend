@@ -114,11 +114,7 @@ func (g *GameState) ExchangeWithWidow(toWidow []Card, fromWidow []Card) error {
 	return nil
 }
 
-func (g *GameState) PlayCard(player string, card Card) error {
-	playerIndex := utils.IndexOf(g.Players[:], player)
-	if playerIndex == -1 {
-		return fmt.Errorf("Player is not in this game")
-	}
+func (g *GameState) PlayCard(playerIndex int, card Card) error {
 	cards := g.Hands[playerIndex]
 	cardIndex := utils.IndexOf(cards, card)
 	if cardIndex == -1 {
@@ -130,6 +126,9 @@ func (g *GameState) PlayCard(player string, card Card) error {
 		return g.finishPlay()
 	}
 	g.CurrentPlayer = (g.CurrentPlayer + 1 + 4) % 4
+	if g.Players[g.CurrentPlayer] == "" {
+		g.playAICard()
+	}
 	return nil
 }
 
@@ -200,4 +199,38 @@ type VisibleGameState struct {
 	Bid           int       `json:"bid"`
 	BidWinner     int       `json:"bidWinner"`
 	Done          bool      `json:"done"`
+}
+
+func (g *GameState) playAICard() {
+	leadingColor := Color(0)
+	if len(g.Table) > 0 {
+		leadingColor = g.Table[0].Color
+	}
+	hand := g.Hands[g.CurrentPlayer]
+	haveLeading := leadingColor == Color(0)
+	haveTrump := false
+	for _, card := range hand {
+		if card.Color != 0 && card.Color == leadingColor {
+			haveLeading = true
+		}
+		if card.Color == 0 || card.Color == g.Trump {
+			haveTrump = true
+		}
+	}
+
+	chosen := hand[0]
+	for _, card := range hand {
+		if card.Color != leadingColor && !haveLeading {
+			if card.Color == g.Trump {
+				chosen = card
+			} else if !haveTrump {
+				chosen = card
+			}
+		}
+		if card.Color == leadingColor {
+			chosen = card
+		}
+	}
+	fmt.Printf("Player %d plays card %v\n", g.CurrentPlayer, chosen)
+	g.PlayCard(g.CurrentPlayer, chosen)
 }

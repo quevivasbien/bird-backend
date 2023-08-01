@@ -108,6 +108,9 @@ func (b *BidState) AdvanceBidder() {
 		b.Done = true
 	}
 	b.CurrentBidder = nextBidder
+	if b.Players[b.CurrentBidder] == "" {
+		b.setAIBid()
+	}
 }
 
 func (b *BidState) ProcessBid(player string, amt int) error {
@@ -157,6 +160,7 @@ func (b BidState) InitGame() (GameState, error) {
 		CurrentPlayer: b.CurrentBidder,
 		Bid:           b.Bid,
 		BidWinner:     b.CurrentBidder,
+		Table:         []Card{},
 	}, nil
 }
 
@@ -168,4 +172,46 @@ type VisibleBidState struct {
 	Passed        [4]bool   `json:"passed"`
 	CurrentBidder int       `json:"currentBidder"`
 	Bid           int       `json:"bid"`
+}
+
+func (b *BidState) setAIBid() {
+	value := handValue(b.Hands[b.CurrentBidder])
+	fmt.Printf("Player %d has hand value %d\n", b.CurrentBidder, value)
+	if b.Bid < value {
+		rem := value % 5
+		b.Bid = value + (5 - rem)
+	} else {
+		b.Passed[b.CurrentBidder] = true
+	}
+	b.AdvanceBidder()
+}
+
+func handValue(h []Card) int {
+	total := 0
+	colorCounts := make(map[Color]int)
+	colorCounts[Red] = 0
+	colorCounts[Yellow] = 0
+	colorCounts[Green] = 0
+	colorCounts[Black] = 0
+	for _, card := range h {
+		if card.Value == 1 {
+			total += 15
+		} else if card.Value == 0 {
+			colorCounts[Red]++
+			colorCounts[Yellow]++
+			colorCounts[Green]++
+			colorCounts[Black]++
+		} else {
+			total += card.Value
+			colorCounts[card.Color]++
+		}
+	}
+	maxColorCount := 0
+	for _, count := range colorCounts {
+		if count > maxColorCount {
+			maxColorCount = count
+		}
+	}
+	total += maxColorCount * 5
+	return total
 }

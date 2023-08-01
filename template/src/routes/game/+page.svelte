@@ -24,7 +24,6 @@
 		}
 		sse.addEventListener('update', (e) => {
 			const data = JSON.parse(e.data);
-			data.table = data.table ?? [];
 			console.log("data update:", data);
 			$gameStore = data;
 		});

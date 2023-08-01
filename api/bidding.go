@@ -3,8 +3,6 @@ package api
 import (
 	"fmt"
 	"log"
-	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/quevivasbien/bird-game/game"
@@ -25,21 +23,7 @@ func startBidding(c *fiber.Ctx) error {
 		log.Println("When starting bids, attempted to fetch a lobby that doesn't exist")
 		return c.SendStatus(fiber.StatusNotFound)
 	}
-	// check that player belongs in lobby and game is ready to start
-	lobbyFull := true
-	playerInLobby := false
-	for _, player := range lobby.Players {
-		if player == "" {
-			lobbyFull = false
-		}
-		if player == authInfo.Name {
-			playerInLobby = true
-		}
-	}
-	if !lobbyFull {
-		return c.SendStatus(fiber.StatusBadRequest)
-	}
-	if !playerInLobby {
+	if lobby.Host != authInfo.Name {
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 
@@ -104,20 +88,6 @@ func submitBid(c *fiber.Ctx) error {
 			log.Println("When ending bidding:", err)
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
-	}
-
-	// for testing
-	if gameID == "test" {
-		go func() {
-			for strings.HasPrefix(bidState.Players[bidState.CurrentBidder], "dummy") {
-				time.Sleep(time.Second)
-				bidState.ProcessBid(bidState.Players[bidState.CurrentBidder], 0)
-				bidManager.Put(bidState)
-			}
-			if bidState.Done {
-				endBidding(bidState)
-			}
-		}()
 	}
 
 	return c.SendStatus(fiber.StatusOK)

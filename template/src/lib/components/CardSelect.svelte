@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Card } from "$lib/types";
 	import CardView from "$lib/components/CardView.svelte";
-	import Dropdown from "./Dropdown.svelte";
+	import Dropdown from "$lib/components/Dropdown.svelte";
 	import { handSort } from "$lib/stores";
 	import { sortCards } from "$lib/utils";
 

@@ -94,7 +94,11 @@ func playCard(c *fiber.Ctx) error {
 	if err = c.BodyParser(&card); err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
-	err = gameState.PlayCard(authInfo.Name, card)
+	playerIndex := utils.IndexOf(gameState.Players[:], authInfo.Name)
+	if playerIndex == -1 {
+		return c.SendStatus(fiber.StatusForbidden)
+	}
+	err = gameState.PlayCard(playerIndex, card)
 	if err != nil {
 		log.Println("When trying to play card:", err)
 		return c.SendStatus(fiber.StatusBadRequest)

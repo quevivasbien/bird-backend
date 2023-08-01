@@ -19,10 +19,7 @@ func createLobby(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusConflict)
 	}
 	lobby := game.MakeLobby(lobbyID, authInfo.Name)
-	// for testing
-	if lobbyID == "test" {
-		lobby.Players = [4]string{authInfo.Name, "dummy1", "dummy2", "dummy3"}
-	}
+
 	lobbyManager.Put(lobby)
 	return c.JSON(lobby)
 }
