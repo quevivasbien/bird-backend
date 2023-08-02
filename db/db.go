@@ -172,17 +172,17 @@ type Tables struct {
 	UserTable
 }
 
-func GetTables(region string) (Tables, error) {
+func GetTables(region string) (*Tables, error) {
 	client, err := GetClient(region)
 	if err != nil {
-		return Tables{}, fmt.Errorf("Error getting database client: %v", err)
+		return nil, fmt.Errorf("Error getting database client: %v", err)
 	}
 	tables := Tables{Region: region}
 	tables.UserTable, err = MakeUserTable(client)
 	if err != nil {
-		return tables, fmt.Errorf("Error initializing user table: %v", err)
+		return nil, fmt.Errorf("Error initializing user table: %v", err)
 	}
-	return tables, nil
+	return &tables, nil
 }
 
 // delete and re-initialize all tables
@@ -191,9 +191,10 @@ func (t *Tables) Reset() error {
 	if err != nil {
 		return fmt.Errorf("Problem deleting user table: %v", err)
 	}
-	*t, err = GetTables(t.Region)
+	newTables, err := GetTables(t.Region)
 	if err != nil {
 		return fmt.Errorf("Problem re-initializing tables: %v", err)
 	}
+	*t = *newTables
 	return nil
 }

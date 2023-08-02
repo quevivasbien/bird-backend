@@ -35,6 +35,7 @@
         done: false,
         players: ["admin", "dummy1", "dummy2", "dummy3"],
         hand: [{color: 0, value: 0}, {color: 1, value: 1}, {color: 2, value: 2}, {color: 1, value: 12}],
+		discardSize: [0, 0],
         table: [],
         currentPlayer: 0,
         trump: 0,
@@ -120,57 +121,3 @@
 		// }
 	}
 </script>
-
-{#if !trumpSelected}
-	{#if tookBid}
-    <form on:submit|preventDefault={submitCreateGame}>
-            <h1 class="text-3xl">Choose cards to exchange with widow</h1>
-			{#await getWidow()}
-				loading widow...
-			{:then widow}
-				<WidowExchange widow={widow ?? []} {yourHand} bind:toWidow={toWidow} bind:fromWidow={fromWidow} />
-			{/await}
-            <h1 class="text-3xl">Choose trump color</h1>
-            <div class="flex flex-row space-x-4 items-center m-4">
-                <label>
-                    <input type="radio" bind:group={trumpSelection} value={1} />
-                    <span>Red</span>
-                </label>
-                <label>
-                    <input type="radio" bind:group={trumpSelection} value={2} />
-                    <span>Yellow</span>
-                </label>
-                <label>
-                    <input type="radio" bind:group={trumpSelection} value={3} />
-                    <span>Green</span>
-                </label>
-                <label>
-                    <input type="radio" bind:group={trumpSelection} value={4} />
-                    <span>Black</span>
-                </label>
-                <div class="flex-grow text-center">
-                    <button type="submit" disabled={trumpSelection == 0}>Submit</button>
-                </div>
-            </div>
-		</form>
-		{#if startGameStatus}
-			<div>{startGameStatus}</div>
-		{/if}
-	{:else}
-		<div>Waiting for player {($gameStore?.bidWinner ?? -1) + 1} to choose trump color...</div>
-		<Hand cards={yourHand} />
-	{/if}
-{:else}
-	<div class="text-2xl">{trumpColor} is trump.</div>
-	<Table />
-	{#if currentPlayer === yourIndex}
-		<div class="text-3xl my-4">Your turn</div>
-		<form on:submit|preventDefault={submitSelectCard}>
-			<CardSelect cards={yourHand} bind:selection={selectedCard} />
-			<button type="submit">Play card</button>
-		</form>
-	{:else}
-		<div class="text-3xl my-4">Player {currentPlayer + 1}'s turn</div>
-		<Hand cards={yourHand} />
-	{/if}
-{/if}

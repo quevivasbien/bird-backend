@@ -75,7 +75,6 @@ export function load(event: LoadEvent) {
         );
         if (response.ok) {
             const bidState = await response.json();
-            console.log(bidState);
             bidStore.set(bidState);
         }
         return [response.ok, response.status];

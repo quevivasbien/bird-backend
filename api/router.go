@@ -13,8 +13,8 @@ const CACHE_FLUSH_INTVL time.Duration = time.Second * 30
 
 var tables *db.Tables
 
-func InitApi(r fiber.Router, t db.Tables) error {
-	tables = &t
+func InitApi(r fiber.Router, t *db.Tables) error {
+	tables = t
 	r.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Bird backend")
 	})

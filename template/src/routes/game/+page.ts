@@ -56,7 +56,7 @@ export function load(event: LoadEvent) {
     const getScore = async () => {
         const gameInfo = get(gameStore);
         if (gameInfo === undefined) {
-            return;
+            return [];
         }
         const response = await fetch(
             `${base}/api/games/${gameInfo.id}/score`,
@@ -65,11 +65,11 @@ export function load(event: LoadEvent) {
             },
         );
         if (!response.ok) {
-            console.log("Problem getting end-of-game score; status =" + response.status);
-            return;
+            console.log("Problem getting end-of-game score; status = " + response.status);
+            return [];
         }
         const data = await response.json();
-        return data;
+        return [data.score0, data.score1];
     };
 
     const playCard = async (card: Card) => {
@@ -90,11 +90,31 @@ export function load(event: LoadEvent) {
         return [response.ok, response.status];
     };
 
+    const finishPlay = async () => {
+        const gameInfo = get(gameStore);
+        if (gameInfo === undefined) {
+            return [false, 0];
+        }
+        const response = await fetch(
+            `${base}/api/games/${gameInfo.id}/finish`,
+            {
+                method: "POST",
+            },
+        );
+        if (!response.ok) {
+            console.log("Problem finishing play; status = " + response.status);
+            return;
+        }
+        const { winner } = await response.json();
+        return winner;
+    };
+
     return {
         subscribeToGame,
         getWidow,
         startRound,
         getScore,
         playCard,
+        finishPlay,
     };
 }

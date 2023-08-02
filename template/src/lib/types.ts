@@ -32,6 +32,7 @@ export interface GameInfo {
     players: string[];
     hand: Card[];
     table: Card[];
+    discardSize: number[];
     currentPlayer: number;
     trump: number;
     bid: number;

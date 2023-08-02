@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,12 +19,13 @@ func getGameState(c *fiber.Ctx) error {
 	gameID := c.Params("gameid")
 	game, exists := gameManager.Get(gameID)
 	if !exists {
-		return c.SendStatus(fiber.StatusNotFound)
+		c.Context().SetStatusCode(fiber.StatusNotFound)
+		return c.SendString("Requested game not found in game manager")
 	}
 	userIndex := utils.IndexOf(game.Players[:], authInfo.Name)
 	if userIndex == -1 {
-		log.Println("Tried to get game state for a player not in the game")
-		return c.SendStatus(fiber.StatusForbidden)
+		c.Context().SetStatusCode(fiber.StatusForbidden)
+		return c.SendString("Tried to get game state for a player not in the game")
 	}
 	return c.JSON(game.Visible(userIndex))
 }
@@ -37,7 +39,8 @@ func getWidow(c *fiber.Ctx) error {
 	gameID := c.Params("gameid")
 	game, exists := gameManager.Get(gameID)
 	if !exists {
-		return c.SendStatus(fiber.StatusNotFound)
+		c.Context().SetStatusCode(fiber.StatusNotFound)
+		return c.SendString("Requested game not found in game manager")
 	}
 
 	if authInfo.Name != game.Players[game.BidWinner] && !authInfo.Admin {
@@ -59,18 +62,19 @@ func startRound(c *fiber.Ctx) error {
 		FromWidow []game.Card `json:"fromWidow"`
 	}{}
 	if err = c.BodyParser(&body); err != nil {
-		log.Println("Error parsing body of start game request:", err)
-		return c.SendStatus(fiber.StatusBadRequest)
+		c.Context().SetStatusCode(fiber.StatusBadRequest)
+		return c.SendString(fmt.Sprintf("Error parsing body of start game request: %v", err))
 	}
 	gameID := c.Params("gameid")
 	game, exists := gameManager.Get(gameID)
 	if !exists {
-		return c.SendStatus(fiber.StatusNotFound)
+		c.Context().SetStatusCode(fiber.StatusNotFound)
+		return c.SendString("Requested game not found in game manager")
 	}
 	err = game.ExchangeWithWidow(body.ToWidow, body.FromWidow)
 	if err != nil {
-		log.Println("When exchanging cards with widow:", err)
-		return c.SendStatus(fiber.StatusBadRequest)
+		c.Context().SetStatusCode(fiber.StatusBadRequest)
+		return c.SendString(fmt.Sprintf("When exchanging cards with widow, got error %v", err))
 	}
 	game.Trump = body.Trump
 	gameManager.Put(game)
@@ -100,11 +104,29 @@ func playCard(c *fiber.Ctx) error {
 	}
 	err = gameState.PlayCard(playerIndex, card)
 	if err != nil {
-		log.Println("When trying to play card:", err)
-		return c.SendStatus(fiber.StatusBadRequest)
+		c.Context().SetStatusCode(fiber.StatusBadRequest)
+		return c.SendString(fmt.Sprintf("When trying to play card, got error %v", err))
 	}
 	gameManager.Put(gameState)
 	return c.SendStatus(fiber.StatusOK)
+}
+
+func finishPlay(c *fiber.Ctx) error {
+	gameID := c.Params("gameid")
+	game, exists := gameManager.Get(gameID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	winner, err := game.FinishPlay()
+	if err != nil {
+		c.Context().SetStatusCode(fiber.StatusBadRequest)
+		c.SendString(fmt.Sprintf("When attempting to finish play, got error %v", err))
+	}
+	gameManager.Put(game)
+	out := struct {
+		Winner int `json:"winner"`
+	}{winner}
+	return c.JSON(out)
 }
 
 func getScore(c *fiber.Ctx) error {
@@ -115,8 +137,8 @@ func getScore(c *fiber.Ctx) error {
 	}
 	score0, score1, err := game.Score()
 	if err != nil {
-		log.Println("When requesting game score:", err)
-		return c.SendStatus(fiber.StatusBadRequest)
+		c.Context().SetStatusCode(fiber.StatusBadRequest)
+		return c.SendString(fmt.Sprintf("When trying to get game score, got error %v", err))
 	}
 	out := struct {
 		Score0 int `json:"score0"`
@@ -154,6 +176,7 @@ func setupGames(r fiber.Router) {
 	r.Get("/:gameid/widow", getWidow)
 	r.Post("/:gameid/start", startRound)
 	r.Post("/:gameid/play", playCard)
+	r.Post("/:gameid/finish", finishPlay)
 	r.Get("/:gameid/score", getScore)
 	r.Get("/:gameid/subscribe", subscribeToGame)
 }

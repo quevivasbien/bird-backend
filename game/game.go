@@ -30,7 +30,7 @@ func (c Card) Beats(other Card, trump Color) bool {
 			return false
 		}
 	}
-	return c.Value == 1 || c.Value > other.Value
+	return c.Value == 1 || (other.Value != 1 && c.Value > other.Value)
 }
 
 func (c Card) Score() int {
@@ -75,6 +75,7 @@ func (g GameState) Visible(player int) interface{} {
 		ID:            g.ID,
 		Players:       g.Players,
 		Hand:          g.Hands[player],
+		DiscardSize:   [2]int{len(g.Discarded[0]), len(g.Discarded[1])},
 		Table:         g.Table,
 		CurrentPlayer: g.CurrentPlayer,
 		Trump:         g.Trump,
@@ -120,10 +121,14 @@ func (g *GameState) PlayCard(playerIndex int, card Card) error {
 	if cardIndex == -1 {
 		return fmt.Errorf("Card is not in player's hand")
 	}
+	if len(g.Table) == 4 {
+		return fmt.Errorf("All players have already played. Call FinishPlay before playing more cards.")
+	}
 	g.Table = append(g.Table, card)
 	g.Hands[playerIndex] = utils.Remove(g.Hands[playerIndex], cardIndex)
 	if len(g.Table) == 4 {
-		return g.finishPlay()
+		// host should call FinishPlay now
+		return nil
 	}
 	g.CurrentPlayer = (g.CurrentPlayer + 1 + 4) % 4
 	if g.Players[g.CurrentPlayer] == "" {
@@ -132,21 +137,24 @@ func (g *GameState) PlayCard(playerIndex int, card Card) error {
 	return nil
 }
 
-func (g *GameState) finishPlay() error {
+// clean up after all four players have played
+// returns index of winner
+func (g *GameState) FinishPlay() (int, error) {
 	if len(g.Table) != 4 {
-		return fmt.Errorf("Attempted to finish a play before all players have played")
+		return -1, fmt.Errorf("Attempted to finish a play before all players have played")
 	}
 	// figure out winner
 	winner := (g.CurrentPlayer + 1) % 4
 	bestCard := g.Table[0]
 	for i := 1; i <= 3; i++ {
-		player := (winner + i) % 4
-		card := g.Table[player]
+		player := (g.CurrentPlayer + 1 + i + 4) % 4
+		card := g.Table[i]
 		if card.Beats(bestCard, g.Trump) {
 			winner = player
 			bestCard = card
 		}
 	}
+	fmt.Printf("Winner of round is player %d with card %v\n", winner+1, bestCard)
 	g.CurrentPlayer = winner
 	// remove cards from table
 	if winner%2 == 0 {
@@ -164,15 +172,19 @@ func (g *GameState) finishPlay() error {
 	}
 	if done {
 		g.Done = done
+		// add widow to hand of winner of this play
 		if winner%2 == 0 {
 			g.Discarded[0] = append(g.Discarded[0], g.Widow[:]...)
 		} else {
 			g.Discarded[1] = append(g.Discarded[1], g.Widow[:]...)
 		}
+	} else if g.Players[winner] == "" {
+		g.playAICard()
 	}
-	return nil
+	return winner, nil
 }
 
+// if game is done (all hands empty), calculate score for each team
 func (g *GameState) Score() (int, int, error) {
 	if !g.Done {
 		return -1, -1, fmt.Errorf("Cannot calculate score before game is finished")
@@ -193,6 +205,7 @@ type VisibleGameState struct {
 	ID            string    `json:"id"`
 	Players       [4]string `json:"players"`
 	Hand          []Card    `json:"hand"`
+	DiscardSize   [2]int    `json:"discardSize"`
 	Table         []Card    `json:"table"`
 	CurrentPlayer int       `json:"currentPlayer"`
 	Trump         Color     `json:"trump"`
@@ -205,6 +218,9 @@ func (g *GameState) playAICard() {
 	leadingColor := Color(0)
 	if len(g.Table) > 0 {
 		leadingColor = g.Table[0].Color
+		if leadingColor == Color(0) {
+			leadingColor = g.Trump
+		}
 	}
 	hand := g.Hands[g.CurrentPlayer]
 	haveLeading := leadingColor == Color(0)
@@ -231,6 +247,5 @@ func (g *GameState) playAICard() {
 			chosen = card
 		}
 	}
-	fmt.Printf("Player %d plays card %v\n", g.CurrentPlayer, chosen)
 	g.PlayCard(g.CurrentPlayer, chosen)
 }

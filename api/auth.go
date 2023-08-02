@@ -7,7 +7,16 @@ import (
 	"github.com/quevivasbien/bird-game/db"
 )
 
+var TestUser = db.User{
+	Name:     "testUser",
+	Password: "test",
+	Admin:    false,
+}
+
 func loginHandler(c *fiber.Ctx) error {
+	if tables == nil {
+		return c.JSON(TestUser)
+	}
 	type LoginInput struct {
 		Name     string `json:"name"`
 		Password string `json:"password"`
@@ -36,6 +45,9 @@ func logoutHandler(c *fiber.Ctx) error {
 }
 
 func createUserHandler(c *fiber.Ctx) error {
+	if tables == nil {
+		return c.SendStatus(fiber.StatusServiceUnavailable)
+	}
 	type CreateUserInput struct {
 		Name     string `json:"name"`
 		Password string `json:"password"`
