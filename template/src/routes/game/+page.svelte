@@ -8,6 +8,7 @@
 	import { gameStore, userStore } from '$lib/stores';
 	import type { Card, GameInfo } from '$lib/types';
 	import { onDestroy, onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 
 	export let data;
 
@@ -98,10 +99,10 @@
 		}
 	}
 
-	let selectedCard: Card;
+	let selectedCard: Card | null;
 	let cardSelectStatus = '';
 	async function submitSelectCard() {
-		if (selectedCard === undefined) {
+		if (selectedCard === undefined || selectedCard === null) {
 			return;
 		}
 		if (!selectedCardIsOk()) {
@@ -116,7 +117,7 @@
 	}
 
 	function selectedCardIsOk() {
-		if (selectedCard === undefined) {
+		if (selectedCard === undefined || selectedCard === null) {
 			return false;
 		}
 		if (table.length === 0) {
@@ -140,6 +141,31 @@
 		const [ok, status] = await finishPlay();
 		if (!ok) {
 			console.log("Problem finishing round; got status = " + status);
+		}
+	}
+
+	const SCORE_TIMEOUT = 1000;
+	async function initGetScores() {
+		const scores = await getScore();
+		setTimeout(() => getFinalScores(scores as [number, number]), SCORE_TIMEOUT);
+		return scores;
+	}
+
+	let finalScoreUpdateText = '';
+	let finalScores: [number, number] | undefined = undefined;
+	function getFinalScores(scores: [number, number]) {
+		if ($gameStore === undefined) {
+			console.log("Game state is undefined when calculating final scores");
+			return;
+		}	
+		finalScores = [...scores];
+		const teamTookBid = $gameStore.bidWinner % 2;
+		if (scores[teamTookBid] < $gameStore.bid) {
+			finalScoreUpdateText = `Team ${teamTookBid + 1} failed to make the bid and loses ${$gameStore.bid} points!`;
+			finalScores[teamTookBid] = -$gameStore.bid;
+		}
+		else {
+			finalScoreUpdateText = `Team ${teamTookBid + 1} made the bid!`;
 		}
 	}
 </script>
@@ -229,12 +255,22 @@
 {:else}
 	<!-- displayed when round is complete -->
 	<h1 class="3xl">Round complete!</h1>
-	{#await getScore()}
+	{#await initGetScores()}
 		<div>Calculating scores...</div>
 	{:then scores}
-		<div>Team 1: {scores[0]}</div>
-		<div>Team 2: {scores[1]}</div>
-		<!-- todo: update based on bid -->
+		<div class="my-8" transition:fade>
+			<div class="text-lg">Preliminary scores:</div>
+			<div>Team 1: {scores[0]}</div>
+			<div>Team 2: {scores[1]}</div>
+		</div>
+		<div class="text-lg">Final scores:</div>
+		{#if finalScores !== undefined}
+			<div class="my-8" transition:fade>
+				<div class="italic">{finalScoreUpdateText}</div>
+				<div>Team 1: {finalScores[0]}</div>
+				<div>Team 2: {finalScores[1]}</div>
+			</div>
+		{/if}
 	{/await}
-	<a href={`${base}/`}>Back to home</a>
+	<a class="my-8" href={`${base}/`}>Back to home</a>
 {/if}

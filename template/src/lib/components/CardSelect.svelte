@@ -6,7 +6,7 @@
 	import { sortCards } from "$lib/utils";
 
     export let cards: Card[];
-    export let selection: Card;
+    export let selection: Card | null = null;
 
     $: sortedCards = sortCards(cards, $handSort);
 
@@ -15,8 +15,8 @@
         {action: () => $handSort = false, label: 'Descending'},
     ];
 
-    let selectionIndex: number = 0;
-    $: selection = sortedCards[selectionIndex];
+    let selectionIndex: number = -1;
+    $: selection = sortedCards[selectionIndex] ?? null;
 </script>
 
 <div class="flex flex-row space-x-8 items-center mt-4">

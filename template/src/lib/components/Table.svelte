@@ -24,8 +24,7 @@
 <div class="flex flex-row space-x-8 items-center mt-4">
 	<h2 class="text-2xl">Cards on table</h2>
 </div>
-<!-- TODO: change table layout to grid -->
-<div class="flex flex-wrap">
+<div class="grid grid-cols-2 gap-4">
 	{#each sortedCards as card, i}
 		<div class="flex flex-col space-y-2 m-4">
 			<div class="text-xl text-center">Player {i + 1} ({players[i]})</div>
