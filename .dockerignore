@@ -1,0 +1,14 @@
+# flyctl launch added from .gitignore
+**/.vscode
+
+# flyctl launch added from template/.gitignore
+template/**/.DS_Store
+template/**/node_modules
+template/.svelte-kit
+template/package
+template/**/.env
+template/**/.env.*
+!template/**/.env.example
+template/**/vite.config.js.timestamp-*
+template/**/vite.config.ts.timestamp-*
+fly.toml

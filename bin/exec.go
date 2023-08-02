@@ -14,6 +14,8 @@ func Help() {
 	space := strings.Repeat(" ", 3)
 	fmt.Println("Commands")
 	fmt.Println("- resetdb" + space + "(re-initialize database)")
+	fmt.Println("- listusers" + space + "(list all users currently in database)")
+	fmt.Println("- deluser [name]" + space + "(delete user)")
 	fmt.Println("- makeadmin [name] [password]" + space + "(create admin account)")
 }
 
@@ -29,6 +31,21 @@ func ResetDB() {
 	fmt.Println("Successfully reset database")
 }
 
+func ListUsers() {
+	tables, err := db.GetTables(AWS_REGION)
+	if err != nil {
+		panic(fmt.Sprint("Problem getting existing tables:", err))
+	}
+	users, err := tables.AllUsers()
+	if err != nil {
+		panic(fmt.Sprint("Problem getting existing tables:", err))
+	}
+	fmt.Printf("Users (%d):\n", len(users))
+	for i, user := range users {
+		fmt.Printf("%d: %v\n", i+1, user)
+	}
+}
+
 func MakeAdmin(name string, password string) {
 	tables, err := db.GetTables(AWS_REGION)
 	if err != nil {
@@ -41,6 +58,18 @@ func MakeAdmin(name string, password string) {
 	fmt.Println("Successfully created admin user")
 }
 
+func DelUser(name string) {
+	tables, err := db.GetTables(AWS_REGION)
+	if err != nil {
+		panic(fmt.Sprint("Problem getting existing tables:", err))
+	}
+	err = tables.DeleteUser(name)
+	if err != nil {
+		panic(fmt.Sprint("Problem deleting user:", err))
+	}
+	fmt.Println("Successfully deleted user")
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		Help()
@@ -50,6 +79,14 @@ func main() {
 	command := os.Args[1]
 	if command == "resetdb" {
 		ResetDB()
+	} else if command == "listusers" {
+		ListUsers()
+	} else if command == "deluser" {
+		if len(os.Args) < 3 {
+			fmt.Println("Missing username to delete")
+		} else {
+			DelUser(os.Args[2])
+		}
 	} else if command == "makeadmin" {
 		if len(os.Args) < 4 {
 			fmt.Println("Missing name and/or password for admin user")

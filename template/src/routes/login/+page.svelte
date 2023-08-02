@@ -40,7 +40,7 @@
 	<button class="ml-2" type="submit">Login</button>
 </form>
 {#if statusText}
-	<div>{statusText}</div>
+	<div class="m-2 text-red-800">{statusText}</div>
 {/if}
 
 <div>

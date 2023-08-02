@@ -236,7 +236,7 @@
 			<div class="text-3xl my-4">Your turn</div>
 			<form on:submit={submitSelectCard}>
 				<CardSelect cards={yourHand} bind:selection={selectedCard} />
-				<button class="my-4" type="submit">Play card</button>
+				<button class="my-4" type="submit" disabled={selectedCard === null}>Play card</button>
 				{#if cardSelectStatus}
 					<div class="text-red-800">{cardSelectStatus}</div>
 				{/if}

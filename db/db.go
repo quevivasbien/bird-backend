@@ -167,6 +167,14 @@ func deleteItem(t Table, id string) error {
 	return nil
 }
 
+func allItems(t Table) ([]map[string]types.AttributeValue, error) {
+	output, err := t.Client().Scan(context.TODO(), &dynamodb.ScanInput{TableName: aws.String(t.Name())})
+	if err != nil {
+		return nil, fmt.Errorf("Error when scanning all items in table %s: %v", t.Name(), err)
+	}
+	return output.Items, nil
+}
+
 type Tables struct {
 	Region string
 	UserTable

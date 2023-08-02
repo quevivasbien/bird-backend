@@ -77,6 +77,10 @@ func (t UserTable) UpdateUser(uname string, updates map[string]interface{}) erro
 	return updateItem(t, uname, updates)
 }
 
+func (t UserTable) DeleteUser(name string) error {
+	return deleteItem(t, name)
+}
+
 // check that user exists and has correct password
 func (t UserTable) ValidateUser(name string, password string) (bool, User, error) {
 	dbUser, err := t.GetUser(name)
@@ -105,4 +109,21 @@ func (t UserTable) UserExists(name string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (t UserTable) AllUsers() ([]User, error) {
+	items, err := allItems(t)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]User, len(items))
+	for i, item := range items {
+		user := User{}
+		err = attributevalue.UnmarshalMap(item, &user)
+		if err != nil {
+			return users, fmt.Errorf("Error when unmarshalling user maps: %v", err)
+		}
+		users[i] = user
+	}
+	return users, nil
 }
