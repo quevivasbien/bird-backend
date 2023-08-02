@@ -7,16 +7,7 @@ import (
 	"github.com/quevivasbien/bird-game/db"
 )
 
-var TestUser = db.User{
-	Name:     "testUser",
-	Password: "test",
-	Admin:    false,
-}
-
 func loginHandler(c *fiber.Ctx) error {
-	if tables == nil {
-		return c.JSON(TestUser)
-	}
 	type LoginInput struct {
 		Name     string `json:"name"`
 		Password string `json:"password"`
@@ -25,10 +16,19 @@ func loginHandler(c *fiber.Ctx) error {
 	if err := c.BodyParser(&loginInput); err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
-	ok, user, err := tables.UserTable.ValidateUser(loginInput.Name, loginInput.Password)
-	if !ok || err != nil {
-		log.Println("When validating login:", err)
-		return c.SendStatus(fiber.StatusUnauthorized)
+	var user db.User
+	if tables == nil {
+		user = db.User{
+			Name:     loginInput.Name,
+			Password: loginInput.Password,
+		}
+	} else {
+		ok, u, err := tables.UserTable.ValidateUser(loginInput.Name, loginInput.Password)
+		if !ok || err != nil {
+			log.Println("When validating login:", err)
+			return c.SendStatus(fiber.StatusUnauthorized)
+		}
+		user = u
 	}
 	// login is ok; send jwt token
 	userInfo, err := SetTokenCookie(c, user)

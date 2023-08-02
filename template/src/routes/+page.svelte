@@ -54,7 +54,7 @@
 {#if $userStore !== undefined}
 	<div class="mb-8">
 		<h2 class="text-3xl">Create new game</h2>
-		<form class="flex space-x-4" on:submit|preventDefault={attemptCreateLobby}>
+		<form class="flex space-x-4" on:submit={attemptCreateLobby}>
 			<label class="flex flex-col">
 				<div class="flex">Game name</div>
 				<input class="flex" type="text" bind:value={newGameID} />
@@ -67,7 +67,7 @@
 	</div>
 	<div class="mb-8">
 		<h2 class="text-3xl">Join game</h2>
-		<form class="flex space-x-4" on:submit|preventDefault={attemptJoinLobby}>
+		<form class="flex space-x-4" on:submit={attemptJoinLobby}>
 			<label class="flex flex-col">
 				<div class="flex">Game name</div>
 				<input class="flex" type="text" bind:value={joinGameID} />

@@ -15,8 +15,8 @@
         {action: () => $handSort = false, label: 'Descending'},
     ];
 
-    let selectionIndex: number;
-    $: selection = cards[selectionIndex ?? 0];
+    let selectionIndex: number = 0;
+    $: selection = sortedCards[selectionIndex];
 </script>
 
 <div class="flex flex-row space-x-8 items-center mt-4">

@@ -71,10 +71,11 @@
 
 	let players: string[] = [];
 	let currentPlayer: number = -1;
+	let lastWinner: number = -1;
 	let table: Card[] = [];
 	let done: boolean = false;
 	$: if ($gameStore !== undefined) {
-		({ players, currentPlayer, table, done } = $gameStore);
+		({ players, currentPlayer, lastWinner, table, done } = $gameStore);
 	}
 	$: players = players.map((p) => p === '' ? 'AI' : p);
 
@@ -125,7 +126,7 @@
 		const haveLeadingColor = yourHand.reduce((acc, x) => acc || x.color === leadingColor, false);
 		if (haveLeadingColor) {
 			console.log("haveLeadingColor");
-			return selectedCard.color === leadingColor;
+			return selectedCard.color === leadingColor || selectedCard.color === 0 && leadingColor === $gameStore?.trump;
 		}
 		const haveTrump = yourHand.reduce((acc, x) => acc || x.color === $gameStore?.trump || x.color === 0, false);
 		if (haveTrump) {
@@ -135,20 +136,11 @@
 		return true;
 	}
 
-	let lastWinner: number | undefined = undefined;
-	let leadingPlayer = -1;
-	onMount(() => {
-		if ($gameStore !== undefined) {
-			leadingPlayer = $gameStore.bidWinner;
-		}
-	});
-	$: if (lastWinner !== undefined) {
-		leadingPlayer = lastWinner;
-	}
-
 	async function attemptFinishPlay() {
-		const winner = await finishPlay();
-		lastWinner = winner;
+		const [ok, status] = await finishPlay();
+		if (!ok) {
+			console.log("Problem finishing round; got status = " + status);
+		}
 	}
 </script>
 
@@ -189,14 +181,14 @@
 			<div>{startGameStatus}</div>
 		{/if}
 	{:else}
-		<div>Waiting for player {($gameStore?.bidWinner ?? -1) + 1} to choose trump color...</div>
+		<div class="text-xl my-4">Waiting for player {($gameStore?.bidWinner ?? -1) + 1} to choose trump color...</div>
 		<Hand cards={yourHand} />
 	{/if}
 {:else if !done}
 	<!-- displayed after player chooses trump; this is the actual game -->
 	<div class="text-2xl">{trumpColor} is trump.</div>
-	{#key [table, leadingPlayer]}
-		<Table cards={table} {players} {leadingPlayer} />
+	{#key [table, lastWinner]}
+		<Table cards={table} {players} leadingPlayer={lastWinner} />
 	{/key}
 	{#if table.length === 4}
 		<!-- displayed at end of each play -->
@@ -244,4 +236,5 @@
 		<div>Team 2: {scores[1]}</div>
 		<!-- todo: update based on bid -->
 	{/await}
+	<a href={`${base}/`}>Back to home</a>
 {/if}

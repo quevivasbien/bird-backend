@@ -101,12 +101,7 @@ export function load(event: LoadEvent) {
                 method: "POST",
             },
         );
-        if (!response.ok) {
-            console.log("Problem finishing play; status = " + response.status);
-            return;
-        }
-        const { winner } = await response.json();
-        return winner;
+        return [response.ok, response.status];
     };
 
     return {

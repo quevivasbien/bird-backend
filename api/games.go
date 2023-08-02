@@ -117,16 +117,13 @@ func finishPlay(c *fiber.Ctx) error {
 	if !exists {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
-	winner, err := game.FinishPlay()
+	err := game.FinishPlay()
 	if err != nil {
 		c.Context().SetStatusCode(fiber.StatusBadRequest)
 		c.SendString(fmt.Sprintf("When attempting to finish play, got error %v", err))
 	}
 	gameManager.Put(game)
-	out := struct {
-		Winner int `json:"winner"`
-	}{winner}
-	return c.JSON(out)
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func getScore(c *fiber.Ctx) error {

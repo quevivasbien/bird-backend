@@ -158,6 +158,7 @@ func (b BidState) InitGame() (GameState, error) {
 		Hands:         b.Hands,
 		Widow:         b.Widow,
 		CurrentPlayer: b.CurrentBidder,
+		LastWinner:    b.CurrentBidder,
 		Bid:           b.Bid,
 		BidWinner:     b.CurrentBidder,
 		Table:         []Card{},

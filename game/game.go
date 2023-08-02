@@ -60,6 +60,7 @@ type GameState struct {
 	Widow         [5]Card   `json:"widow"`
 	Table         []Card    `json:"table"`
 	CurrentPlayer int       `json:"currentPlayer"`
+	LastWinner    int       `json:"lastWinner"`
 	Trump         Color     `json:"trump"`
 	Bid           int       `json:"bid"`
 	BidWinner     int       `json:"bidWinner"`
@@ -78,6 +79,7 @@ func (g GameState) Visible(player int) interface{} {
 		DiscardSize:   [2]int{len(g.Discarded[0]), len(g.Discarded[1])},
 		Table:         g.Table,
 		CurrentPlayer: g.CurrentPlayer,
+		LastWinner:    g.LastWinner,
 		Trump:         g.Trump,
 		Bid:           g.Bid,
 		BidWinner:     g.BidWinner,
@@ -137,11 +139,10 @@ func (g *GameState) PlayCard(playerIndex int, card Card) error {
 	return nil
 }
 
-// clean up after all four players have played
-// returns index of winner
-func (g *GameState) FinishPlay() (int, error) {
+// clean up and determine play winner after all four players have played
+func (g *GameState) FinishPlay() error {
 	if len(g.Table) != 4 {
-		return -1, fmt.Errorf("Attempted to finish a play before all players have played")
+		return fmt.Errorf("Attempted to finish a play before all players have played")
 	}
 	// figure out winner
 	winner := (g.CurrentPlayer + 1) % 4
@@ -154,8 +155,8 @@ func (g *GameState) FinishPlay() (int, error) {
 			bestCard = card
 		}
 	}
-	fmt.Printf("Winner of round is player %d with card %v\n", winner+1, bestCard)
 	g.CurrentPlayer = winner
+	g.LastWinner = winner
 	// remove cards from table
 	if winner%2 == 0 {
 		g.Discarded[0] = append(g.Discarded[0], g.Table...)
@@ -181,7 +182,7 @@ func (g *GameState) FinishPlay() (int, error) {
 	} else if g.Players[winner] == "" {
 		g.playAICard()
 	}
-	return winner, nil
+	return nil
 }
 
 // if game is done (all hands empty), calculate score for each team
@@ -208,6 +209,7 @@ type VisibleGameState struct {
 	DiscardSize   [2]int    `json:"discardSize"`
 	Table         []Card    `json:"table"`
 	CurrentPlayer int       `json:"currentPlayer"`
+	LastWinner    int       `json:"lastWinner"`
 	Trump         Color     `json:"trump"`
 	Bid           int       `json:"bid"`
 	BidWinner     int       `json:"bidWinner"`

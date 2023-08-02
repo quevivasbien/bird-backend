@@ -83,16 +83,11 @@
 </script>
 
 <h1 class="text-3xl">Lobby for game <span class="italic">{$lobbyStore?.id ?? ''}</span></h1>
-<div class="max-w-sm m-8">
+<div class="max-w-md m-8">
     {#each players as player, i}
-        {#if i === 0}
-            <h3 class="text-xl font-bold">Team 1</h3>
-        {:else if i === 2}
-            <h3 class="text-xl font-bold">Team 2</h3>
-        {/if}
         <div class="flex flex-row ml-4 my-4 items-center space-x-8">
             <div class="flex flex-grow justify-start">
-                {i + 1}. {player || 'Empty (AI)'}{#if player === host}&ThickSpace;(host){/if}
+                <span class="font-bold">Player {i + 1}</span>&nbsp;(Team {i % 2 + 1}): {player || 'Empty (AI)'}{#if player === host}&nbsp;&nbsp;(host){/if}
             </div>
             {#if amHost}
                 <div class="flex justify-end">

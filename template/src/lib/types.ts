@@ -34,6 +34,7 @@ export interface GameInfo {
     table: Card[];
     discardSize: number[];
     currentPlayer: number;
+    lastWinner: number;
     trump: number;
     bid: number;
     bidWinner: number;
