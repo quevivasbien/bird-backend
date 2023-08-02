@@ -1,26 +1,18 @@
 import { base } from "$app/paths";
-import { lobbyStore } from "$lib/stores";
+import { bidStore, lobbyStore } from "$lib/stores";
 import type { LoadEvent } from "@sveltejs/kit";
 import { get } from "svelte/store";
 
 export function load(event: LoadEvent) {
-    // use this to update lobbyStore   
-    const getLobbyState = async () => {
+    const subscribeToLobby = () => {
         const lobbyInfo = get(lobbyStore);
         if (lobbyInfo === undefined) {
             return;
         }
-        const response = await event.fetch(
-            base + "/api/lobbies/" + lobbyInfo.id,
-            {
-                method: "GET",
-            },
+        const sse = new EventSource(
+           `${base}/api/lobbies/${lobbyInfo.id}/subscribe`,
         );
-        if (!response.ok) {
-            console.log("When fetching lobby state, got " + response.statusText);
-            return;
-        }
-        return await response.json();
+        return sse;
     };
 
     const swapPlayers = async (i: number, j: number) => {
@@ -55,24 +47,44 @@ export function load(event: LoadEvent) {
         return [response.ok, response.status];
     };
 
-    const startGame = async () => {
+    const startBidding = async () => {
         const lobbyInfo = get(lobbyStore);
         if (lobbyInfo === undefined) {
             return [false, 0];
         }
         const response = await event.fetch(
-            base + "/api/games/" + lobbyInfo.id + "/bidding/start",
+            `${base}/api/bidding/${lobbyInfo.id}`,
             {
-                method: "POST",
+                method: "PUT",
             },
         );
         return [response.ok, response.status];
     }
 
+    const receiveBidState = async () => {
+        const lobbyInfo = get(lobbyStore);
+        if (lobbyInfo === undefined) {
+            console.log("Lobby info undefined when trying to get bid state!")
+            return [false, 0];
+        }
+        const response = await event.fetch(
+            `${base}/api/bidding/${lobbyInfo.id}`,
+            {
+                method: "GET",
+            },
+        );
+        if (response.ok) {
+            const bidState = await response.json();
+            bidStore.set(bidState);
+        }
+        return [response.ok, response.status];
+    };
+
     return {
-        getLobbyState,
+        subscribeToLobby,
         swapPlayers,
         leaveLobby,
-        startGame,
+        startBidding,
+        receiveBidState,
     };
 }

@@ -4,61 +4,57 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/quevivasbien/bird-game/db"
+	"github.com/quevivasbien/bird-game/game"
 )
+
+var lobbyManager = MakeManager[game.Lobby]()
 
 func createLobby(c *fiber.Ctx) error {
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	lobbyID := c.Params("lobby")
-	_, err = tables.GetLobby(lobbyID)
-	if err != nil {
-		if _, ok := err.(db.ItemNotFound); !ok {
-			log.Println("When checking if lobbyID is taken in an active lobby:", err)
-			return c.SendStatus(fiber.StatusInternalServerError)
-		}
-	} else {
+	if _, exists := lobbyManager.Get(lobbyID); exists {
 		return c.SendStatus(fiber.StatusConflict)
 	}
-	_, err = tables.GetGameState(lobbyID)
-	if err != nil {
-		if _, ok := err.(db.ItemNotFound); !ok {
-			log.Println("When checking if lobbyID is taken in an active game:", err)
-			return c.SendStatus(fiber.StatusInternalServerError)
-		}
-	} else {
-		return c.SendStatus(fiber.StatusConflict)
-	}
-	lobby := db.Lobby{
-		ID:      lobbyID,
-		Host:    authInfo.Name,
-		Players: [4]string{authInfo.Name},
-	}
-	err = tables.PutLobby(lobby)
-	if err != nil {
-		log.Println("When putting new lobby in db:", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
+	lobby := game.MakeLobby(lobbyID, authInfo.Name)
+
+	lobbyManager.Put(lobby)
 	return c.JSON(lobby)
 }
 
 func getLobbyState(c *fiber.Ctx) error {
-	lobbyMap, err := dbCache.Get(tables.LobbyTable, c.Params("lobby"))
-	if err != nil {
-		log.Println("When getting lobby state from cache", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-	if lobbyMap == nil {
+	lobbyID := c.Params("lobby")
+	lobby, exists := lobbyManager.Get(lobbyID)
+	if !exists {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
-	lobby, err := db.LobbyFromItemMap(lobbyMap)
+	return c.JSON(lobby)
+}
+
+func subscribeToLobby(c *fiber.Ctx) error {
+	lobbyID := c.Params("lobby")
+	lobby, exists := lobbyManager.Get(lobbyID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	authInfo, err := UnloadTokenCookie(c)
 	if err != nil {
-		log.Println("When unmarshalling cached lobby state", err)
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	// require player to be member of lobby in order to subscribe
+	if !lobby.HasPlayer(authInfo.Name) && !authInfo.Admin {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	err = lobbyManager.Subscribe(lobbyID, authInfo.Name, c)
+	if err != nil {
+		log.Println("When subscribing to lobby stream:", err)
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
-	return c.JSON(lobby)
+
+	return nil
 }
 
 func swapLobbyOrder(c *fiber.Ctx) error {
@@ -70,58 +66,38 @@ func swapLobbyOrder(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
-	lobbyMap, err := dbCache.Get(tables.LobbyTable, c.Params("lobby"))
-	if err != nil {
-		if _, ok := err.(db.ItemNotFound); ok {
-			return c.SendStatus(fiber.StatusNotFound)
-		}
-		log.Println("When getting lobby state from cache", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-	lobby, err := db.LobbyFromItemMap(lobbyMap)
-	if err != nil {
-		log.Println("When unmarshalling cached lobby state", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+	lobbyID := c.Params("lobby")
+	lobby, exists := lobbyManager.Get(lobbyID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
 	}
 	if !(lobby.Host == authInfo.Name || authInfo.Admin) {
+		log.Printf("Attempted to swap lobby order with name %s, lobby host %s, and admin status = %v", authInfo.Name, lobby.Host, authInfo.Admin)
 		return c.SendStatus(fiber.StatusForbidden)
 	}
 	i, j := swap.I, swap.J
 	lobby.Players[i], lobby.Players[j] = lobby.Players[j], lobby.Players[i]
-	err = tables.PutLobby(lobby)
-	if err != nil {
-		log.Println("When putting updated lobby in db:", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
+	lobbyManager.Put(lobby)
 	return c.SendStatus(fiber.StatusAccepted)
 }
 
 func joinLobby(c *fiber.Ctx) error {
 	authInfo, err := UnloadTokenCookie(c)
-	if err != nil || authInfo.Name == "" {
+	if err != nil {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 	lobbyID := c.Params("lobby")
-	lobbyMap, err := dbCache.Get(tables.LobbyTable, lobbyID)
-	if err != nil {
-		log.Println("When getting lobby state from cache", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-	if lobbyMap == nil {
+	lobby, exists := lobbyManager.Get(lobbyID)
+	if !exists {
 		return c.SendStatus(fiber.StatusNotFound)
-	}
-	lobby, err := db.LobbyFromItemMap(lobbyMap)
-	if err != nil {
-		log.Println("When unmarshalling cached lobby state", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 	for i, player := range lobby.Players {
 		if player == "" {
 			lobby.Players[i] = authInfo.Name
-			tables.PutLobby(lobby)
+			lobbyManager.Put(lobby)
 			return c.JSON(lobby)
 		}
 	}
@@ -136,10 +112,9 @@ func leaveLobby(c *fiber.Ctx) error {
 	}
 
 	lobbyID := c.Params("lobby")
-	lobby, err := tables.GetLobby(lobbyID)
-	if err != nil {
-		log.Println("When fetching lobby state from db:", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+	lobby, exists := lobbyManager.Get(lobbyID)
+	if !exists {
+		return c.SendStatus(fiber.StatusNotFound)
 	}
 
 	for i, player := range lobby.Players {
@@ -148,7 +123,7 @@ func leaveLobby(c *fiber.Ctx) error {
 		}
 	}
 
-	// if player is host, set new host, or delete game if no host remains
+	// if player is host, set new host; delete game if no host remains
 	lobby.Host = ""
 	for _, player := range lobby.Players {
 		if player != "" {
@@ -156,11 +131,13 @@ func leaveLobby(c *fiber.Ctx) error {
 		}
 	}
 	if lobby.Host == "" {
-		tables.DeleteLobby(lobby.ID)
+		lobbyManager.Delete(lobbyID, EmptyCode)
 		return c.SendStatus(fiber.StatusOK)
+	} else {
+		lobbyManager.Unsubscribe(lobbyID, userInfo.Name)
 	}
 
-	err = tables.PutLobby(lobby)
+	lobbyManager.Put(lobby)
 	if err != nil {
 		log.Println("When updating lobby players on db:", err)
 		return c.SendStatus(fiber.StatusInternalServerError)
@@ -172,6 +149,7 @@ func leaveLobby(c *fiber.Ctx) error {
 func setupLobbies(r fiber.Router) {
 	r.Put("/:lobby", createLobby)
 	r.Get("/:lobby", getLobbyState)
+	r.Get("/:lobby/subscribe", subscribeToLobby)
 	r.Post("/:lobby/swap", swapLobbyOrder)
 	r.Post("/:lobby/join", joinLobby)
 	r.Post("/:lobby/leave", leaveLobby)

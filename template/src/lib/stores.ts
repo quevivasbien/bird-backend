@@ -1,18 +1,12 @@
 import { writable } from "svelte/store";
-
-interface UserInfo {
-    name: string;
-    admin: boolean;
-    expireTime: number;
-}
+import type { GameInfo, BidInfo, LobbyInfo, UserInfo } from "$lib/types";
 
 export const userStore = writable<UserInfo | undefined>(undefined);
 
-interface LobbyInfo {
-    id: string;
-    host: string;
-    players: string[];
-    started: boolean;
-}
-
 export const lobbyStore = writable<LobbyInfo | undefined>(undefined);
+
+export const bidStore = writable<BidInfo | undefined>(undefined);
+
+export const gameStore = writable<GameInfo | undefined>(undefined);
+
+export const handSort = writable<boolean | null>(null);

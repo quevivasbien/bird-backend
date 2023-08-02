@@ -16,7 +16,7 @@ const AWS_REGION = "us-east-1"
 const PORT = ":3000"
 
 func main() {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{Immutable: true})
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "*",
 		AllowHeaders:     "*",
@@ -28,7 +28,7 @@ func main() {
 
 	tables, err := db.GetTables(AWS_REGION)
 	if err != nil {
-		panic(fmt.Sprintf("Error initializing database tables: %v", err))
+		fmt.Printf("When initializing database, got error:\n%v\n\nOnly test user will be available.", err)
 	}
 	err = api.InitApi(app.Group("/api"), tables)
 	if err != nil {
